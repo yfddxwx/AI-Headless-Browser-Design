@@ -49,4 +49,36 @@ describe('Functional Test: Action Execution (真实浏览器会话动作执行�
     const updatedTitle = await rawPage.locator('#headline').innerText();
     expect(updatedTitle).toBe('已成功点击按钮！');
   });
+
+  it('能够对完全没有 ID 的原生链接与按钮进行 @Ref 动态定位与点击操作', async () => {
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <body>
+          <div id="output">未点击</div>
+          <a href="#" onclick="document.getElementById('output').innerText = '超链接已点击'; return false;">无ID链接</a>
+          <button onclick="document.getElementById('output').innerText = '无ID按钮已点击'">无ID按钮</button>
+        </body>
+      </html>
+    `;
+
+    const perception = await session.setContent(html);
+    const linkEl = perception.interactiveElements.find(e => e.text === '无ID链接');
+    const btnEl = perception.interactiveElements.find(e => e.text === '无ID按钮');
+
+    expect(linkEl).toBeDefined();
+    expect(btnEl).toBeDefined();
+
+    // 1. Click link without ID
+    const clickLinkRes = await session.click(linkEl!.ref);
+    expect(clickLinkRes.success).toBe(true);
+    let outputText = await session.getRawPage().locator('#output').innerText();
+    expect(outputText).toBe('超链接已点击');
+
+    // 2. Click button without ID
+    const clickBtnRes = await session.click(btnEl!.ref);
+    expect(clickBtnRes.success).toBe(true);
+    outputText = await session.getRawPage().locator('#output').innerText();
+    expect(outputText).toBe('无ID按钮已点击');
+  });
 });

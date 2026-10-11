@@ -136,6 +136,7 @@ export class SessionContext {
       this.hitlBreaker.assertCanExecute('click');
       const before = await this.getPerception();
       await ActionExecutor.click(this.page, ref);
+      await this.page.waitForLoadState('domcontentloaded').catch(() => {});
       await this.page.waitForTimeout(500); // brief wait for reactive mutations
       const after = await this.getPerception();
 

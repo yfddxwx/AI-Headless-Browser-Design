@@ -4,6 +4,9 @@ import { VisualElement, VisualSnapshot, BoundingBox } from '../types/index.js';
 export interface SOMOverlayOptions {
   includeRawScreenshot?: boolean;
   boxColors?: string[];
+  boxColor?: string;
+  textColor?: string;
+  fontSize?: number;
 }
 
 export class SOMOverlayEngine {
@@ -17,7 +20,9 @@ export class SOMOverlayEngine {
     page: Page,
     options: SOMOverlayOptions = {}
   ): Promise<VisualSnapshot> {
-    const colors = options.boxColors || this.DEFAULT_COLORS;
+    const baseColors = options.boxColor ? [options.boxColor] : (options.boxColors || this.DEFAULT_COLORS);
+    const textColor = options.textColor || '#ffffff';
+    const fontSize = options.fontSize || 11;
     const url = page.url();
     const title = await page.title();
     const viewportSize = page.viewportSize() || { width: 1280, height: 800 };
@@ -29,10 +34,11 @@ export class SOMOverlayEngine {
     }
 
     // Step 1: Inject SOM overlay layer directly into the page
-    const visibleElements: VisualElement[] = await page.evaluate((palette: string[]) => {
-      // Remove any existing overlay if leftover
-      const existing = document.getElementById('__agent_som_overlay__');
-      if (existing) existing.remove();
+    const visibleElements: VisualElement[] = await page.evaluate(
+      (cfg: { palette: string[]; textColor: string; fontSize: number }) => {
+        // Remove any existing overlay if leftover
+        const existing = document.getElementById('__agent_som_overlay__');
+        if (existing) existing.remove();
 
       const overlay = document.createElement('div');
       overlay.id = '__agent_som_overlay__';
@@ -73,6 +79,24 @@ export class SOMOverlayEngine {
           return;
         }
 
+        const inlineStyle = (el.getAttribute('style') || '').toLowerCase();
+        if (
+          inlineStyle.includes('display:none') ||
+          inlineStyle.includes('display: none') ||
+          inlineStyle.includes('visibility:hidden') ||
+          inlineStyle.includes('visibility: hidden') ||
+          inlineStyle.includes('opacity:0') ||
+          inlineStyle.includes('opacity: 0') ||
+          inlineStyle.includes('font-size:0') ||
+          inlineStyle.includes('font-size: 0') ||
+          /width:\s*0(px|%|em|rem)?/i.test(inlineStyle) ||
+          /height:\s*0(px|%|em|rem)?/i.test(inlineStyle) ||
+          /left:\s*-[0-9]{3,}px/i.test(inlineStyle) ||
+          /top:\s*-[0-9]{3,}px/i.test(inlineStyle)
+        ) {
+          return;
+        }
+
         const rect = el.getBoundingClientRect();
 
         // Must have positive dimensions
@@ -101,7 +125,7 @@ export class SOMOverlayEngine {
           }
         }
 
-        const color = palette[colorIndex % palette.length];
+        const color = cfg.palette[colorIndex % cfg.palette.length];
         colorIndex++;
 
         // 1. Create Bounding Box highlight (dashed if occluded)
@@ -126,9 +150,9 @@ export class SOMOverlayEngine {
           top: ${Math.max(0, rect.top - 14)}px;
           left: ${Math.max(0, rect.left)}px;
           background: ${color};
-          color: #ffffff;
+          color: ${cfg.textColor};
           font-family: monospace, sans-serif;
-          font-size: 11px;
+          font-size: ${cfg.fontSize}px;
           font-weight: bold;
           line-height: 14px;
           padding: 0 4px;
@@ -161,7 +185,7 @@ export class SOMOverlayEngine {
 
       document.body.appendChild(overlay);
       return results;
-    }, colors);
+    }, { palette: baseColors, textColor, fontSize });
 
     // Step 2: Capture screenshot with SOM markings
     let annotatedBuf: Buffer;

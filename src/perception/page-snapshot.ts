@@ -16,36 +16,89 @@ export class PageSnapshotService {
   }
 
   public async capturePageSnapshot(page: Page): Promise<PagePerception> {
+    // 1. Tag interactive elements directly in the live browser DOM with deterministic refs (@1, @2, ...)
+    try {
+      await page.evaluate((selector) => {
+        // Clear previous refs to prevent stale tags across dynamic updates
+        const oldMarked = document.querySelectorAll('[data-agent-ref]');
+        oldMarked.forEach((el) => el.removeAttribute('data-agent-ref'));
+
+        const nodes = document.querySelectorAll(selector);
+        let count = 0;
+        for (const node of nodes) {
+          // Skip elements inside template, noscript, svg
+          if (node.closest('template, noscript, svg')) {
+            continue;
+          }
+
+          // Security checks: ignore hidden, zero-sized or adversarial offscreen elements
+          if (node.hasAttribute('hidden') || node.getAttribute('aria-hidden') === 'true') {
+            continue;
+          }
+
+          const inlineStyle = (node.getAttribute('style') || '').toLowerCase();
+          if (
+            inlineStyle.includes('display:none') ||
+            inlineStyle.includes('display: none') ||
+            inlineStyle.includes('visibility:hidden') ||
+            inlineStyle.includes('visibility: hidden') ||
+            inlineStyle.includes('opacity:0') ||
+            inlineStyle.includes('opacity: 0') ||
+            inlineStyle.includes('font-size:0') ||
+            inlineStyle.includes('font-size: 0') ||
+            /width:\s*0(px|%|em|rem)?/i.test(inlineStyle) ||
+            /height:\s*0(px|%|em|rem)?/i.test(inlineStyle) ||
+            /left:\s*-[0-9]{3,}px/i.test(inlineStyle) ||
+            /top:\s*-[0-9]{3,}px/i.test(inlineStyle)
+          ) {
+            continue;
+          }
+
+          const compStyle = window.getComputedStyle(node);
+          if (
+            compStyle.display === 'none' ||
+            compStyle.visibility === 'hidden' ||
+            parseFloat(compStyle.opacity || '1') <= 0 ||
+            compStyle.fontSize === '0px'
+          ) {
+            continue;
+          }
+
+          const tag = node.tagName.toLowerCase();
+          const name =
+            node.getAttribute('aria-label') ||
+            node.getAttribute('placeholder') ||
+            node.getAttribute('title') ||
+            node.getAttribute('name');
+          const text = (node.textContent || '').trim().replace(/\s+/g, ' ');
+
+          // Ignore empty non-input elements with no label (matches ElementRegistry)
+          if (!name && !text && tag !== 'input' && tag !== 'select' && tag !== 'textarea') {
+            continue;
+          }
+
+          count++;
+          node.setAttribute('data-agent-ref', `@${count}`);
+        }
+      }, ElementRegistry.INTERACTIVE_SELECTOR);
+    } catch {
+      // Ignore if page is in transition / destroyed
+    }
+
     const rawHtml = await page.content();
     const url = page.url();
     const title = await page.title();
 
-    // 1. Run security sanitization and prompt injection checks
+    // 2. Run security sanitization and prompt injection checks
     const guardResult = this.promptGuard.sanitizeAndAudit(rawHtml);
 
-    // 2. Compress DOM and build interactive element registry
+    // 3. Compress DOM and build interactive element registry
     const perception = this.compressor.compress(
       guardResult.sanitizedHtml,
       url,
       title,
       guardResult.detectedThreats
     );
-
-    // 3. Inject data-agent-ref into the live browser DOM to enable deterministic actions by ref
-    await page.evaluate((elements) => {
-      for (const el of elements) {
-        try {
-          if (el.selector && el.selector.startsWith('#')) {
-            const found = document.querySelector(el.selector);
-            if (found) {
-              found.setAttribute('data-agent-ref', el.ref);
-            }
-          }
-        } catch {
-          // ignore selector errors
-        }
-      }
-    }, perception.interactiveElements);
 
     return perception;
   }

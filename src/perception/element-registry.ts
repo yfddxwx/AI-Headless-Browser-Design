@@ -10,6 +10,22 @@ export class ElementRegistry {
     this.counter = 0;
   }
 
+  public static readonly INTERACTIVE_SELECTOR = [
+    'a[href]',
+    'button',
+    'input',
+    'select',
+    'textarea',
+    '[role="button"]',
+    '[role="link"]',
+    '[role="checkbox"]',
+    '[role="combobox"]',
+    '[role="searchbox"]',
+    '[role="menuitem"]',
+    '[role="tab"]',
+    '[tabindex="0"]',
+  ].join(', ');
+
   /**
    * Scans a cheerio root and attaches data-agent-ref attributes,
    * returning an array of interactive elements with unique references.
@@ -18,24 +34,7 @@ export class ElementRegistry {
     this.clear();
     const result: InteractiveElement[] = [];
 
-    // Interactive element selectors
-    const interactiveSelector = [
-      'a[href]',
-      'button',
-      'input',
-      'select',
-      'textarea',
-      '[role="button"]',
-      '[role="link"]',
-      '[role="checkbox"]',
-      '[role="combobox"]',
-      '[role="searchbox"]',
-      '[role="menuitem"]',
-      '[role="tab"]',
-      '[tabindex="0"]',
-    ].join(', ');
-
-    $(interactiveSelector).each((_, el) => {
+    $(ElementRegistry.INTERACTIVE_SELECTOR).each((_, el) => {
       const $el = $(el);
 
       // Check if disabled
@@ -62,15 +61,24 @@ export class ElementRegistry {
         return;
       }
 
-      this.counter++;
-      const ref = `@${this.counter}`;
+      // If element already has data-agent-ref (e.g. from live browser DOM), reuse it
+      const existingRef = $el.attr('data-agent-ref');
+      let ref: string;
+      if (existingRef && existingRef.startsWith('@')) {
+        ref = existingRef;
+        const num = parseInt(existingRef.slice(1), 10);
+        if (!isNaN(num) && num > this.counter) {
+          this.counter = num;
+        }
+      } else {
+        this.counter++;
+        ref = `@${this.counter}`;
+        $el.attr('data-agent-ref', ref);
+      }
 
       // Build CSS selector or ref locator
       const id = $el.attr('id');
       const selector = id ? `#${id}` : `[data-agent-ref="${ref}"]`;
-
-      // Inject data-agent-ref into the DOM for downstream execution
-      $el.attr('data-agent-ref', ref);
 
       const item: InteractiveElement = {
         ref,
