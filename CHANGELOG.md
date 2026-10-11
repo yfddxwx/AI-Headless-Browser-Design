@@ -37,3 +37,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Integrated full multi-tab situational awareness (`tabId` and `activeTabs`) directly into `PagePerception`.
   - Added MCP tools: `browser_list_tabs`, `browser_create_tab`, `browser_switch_tab`, and `browser_close_tab`.
   - Enforced SSRF security validation across tab creation and popup events.
+- **🔐 Session Vault & Captcha Defense (Feature 04)**:
+  - Implemented `SessionVault` for full export/import of authenticated Cookies, LocalStorage, and SessionStorage.
+  - Created `CaptchaDetector` detecting Cloudflare Turnstile, Google reCAPTCHA, hCaptcha, and generic bot mitigation barriers.
+  - Built `VaultSecuritySanitizer` defending against private IP / SSRF cookie domains, CRLF header injection, and illegal origin protocols.
+  - Exposed MCP tools: `browser_export_vault`, `browser_import_vault`, and `browser_detect_captcha`.

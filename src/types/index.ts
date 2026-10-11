@@ -96,3 +96,35 @@ export interface SecurityCheckResult {
   safe: boolean;
   violations: string[];
 }
+
+export interface BrowserCookie {
+  name: string;
+  value: string;
+  domain: string;
+  path: string;
+  expires?: number;
+  httpOnly?: boolean;
+  secure?: boolean;
+  sameSite?: 'Strict' | 'Lax' | 'None';
+}
+
+export interface OriginStorage {
+  origin: string;
+  localStorage: Record<string, string>;
+  sessionStorage?: Record<string, string>;
+}
+
+export interface SessionVaultData {
+  version: string;
+  createdAt: number;
+  cookies: BrowserCookie[];
+  origins: OriginStorage[];
+  userAgent?: string;
+}
+
+export interface CaptchaDetectionResult {
+  detected: boolean;
+  type?: 'cloudflare_turnstile' | 'recaptcha' | 'hcaptcha' | 'generic_challenge';
+  message?: string;
+  selector?: string;
+}

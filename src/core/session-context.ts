@@ -3,9 +3,11 @@ import { SSRFGuard } from '../security/ssrf-guard.js';
 import { PageSnapshotService } from '../perception/page-snapshot.js';
 import { ActionExecutor } from '../action/action-executor.js';
 import { StateDiff } from '../action/state-diff.js';
-import { ActionResult, BrowserConfig, PagePerception, VisualSnapshot, TabInfo, TabSwitchResult, TabCloseResult } from '../types/index.js';
+import { ActionResult, BrowserConfig, PagePerception, VisualSnapshot, TabInfo, TabSwitchResult, TabCloseResult, SessionVaultData, CaptchaDetectionResult } from '../types/index.js';
 import { SOMOverlayEngine, SOMOverlayOptions } from '../perception/som-overlay.js';
 import { TabManager } from './tab-manager.js';
+import { SessionVault } from './session-vault.js';
+import { CaptchaDetector } from '../security/captcha-detector.js';
 
 export class SessionContext {
   private context: BrowserContext;
@@ -239,6 +241,29 @@ export class SessionContext {
         error: err.message,
       };
     }
+  }
+
+  public async exportVault(filepath?: string): Promise<SessionVaultData> {
+    const pages = this.context.pages();
+    const vault = await SessionVault.exportVault(this.context, pages);
+    if (filepath) {
+      await SessionVault.saveToFile(filepath, vault);
+    }
+    return vault;
+  }
+
+  public async importVault(vaultOrPath: SessionVaultData | string): Promise<{ cookiesImported: number; originsInjected: number }> {
+    let vaultData: SessionVaultData;
+    if (typeof vaultOrPath === 'string') {
+      vaultData = await SessionVault.loadFromFile(vaultOrPath);
+    } else {
+      vaultData = vaultOrPath;
+    }
+    return SessionVault.importVault(this.context, vaultData, this.page);
+  }
+
+  public async detectCaptcha(): Promise<CaptchaDetectionResult> {
+    return CaptchaDetector.detect(this.page);
   }
 
   public async screenshot(): Promise<Buffer> {

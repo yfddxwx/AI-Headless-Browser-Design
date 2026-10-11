@@ -167,6 +167,44 @@ export class AgentBrowserMCPServer {
               required: ['tabId'],
             },
           },
+          {
+            name: 'browser_export_vault',
+            description: 'Export all current cookies and origin storage to a secure SessionVault for authentication persistence.',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                filepath: {
+                  type: 'string',
+                  description: 'Optional file path to write the vault JSON to.',
+                },
+              },
+            },
+          },
+          {
+            name: 'browser_import_vault',
+            description: 'Import cookies and storage from a SessionVault JSON or file to restore login state.',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                filepath: {
+                  type: 'string',
+                  description: 'File path to load the vault JSON from.',
+                },
+                vault: {
+                  type: 'object',
+                  description: 'Direct SessionVault JSON object.',
+                },
+              },
+            },
+          },
+          {
+            name: 'browser_detect_captcha',
+            description: 'Inspect the active page for Cloudflare Turnstile, Google reCAPTCHA, hCaptcha, or bot mitigation barriers.',
+            inputSchema: {
+              type: 'object',
+              properties: {},
+            },
+          },
         ],
       };
     });
@@ -285,6 +323,37 @@ export class AgentBrowserMCPServer {
         case 'browser_close_tab': {
           const tabId = String(request.params.arguments?.tabId || '');
           const result = await session.closeTab(tabId);
+          return {
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+          };
+        }
+
+        case 'browser_export_vault': {
+          const filepath = request.params.arguments?.filepath ? String(request.params.arguments.filepath) : undefined;
+          const vault = await session.exportVault(filepath);
+          return {
+            content: [{ type: 'text', text: JSON.stringify(vault, null, 2) }],
+          };
+        }
+
+        case 'browser_import_vault': {
+          const filepath = request.params.arguments?.filepath ? String(request.params.arguments.filepath) : undefined;
+          const vaultObj = request.params.arguments?.vault as any;
+          const target = filepath || vaultObj;
+          if (!target) {
+            return {
+              isError: true,
+              content: [{ type: 'text', text: 'Either filepath or vault object must be provided.' }],
+            };
+          }
+          const result = await session.importVault(target);
+          return {
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+          };
+        }
+
+        case 'browser_detect_captcha': {
+          const result = await session.detectCaptcha();
           return {
             content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
           };
