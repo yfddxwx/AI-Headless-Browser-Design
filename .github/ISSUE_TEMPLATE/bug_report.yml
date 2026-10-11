@@ -1,0 +1,56 @@
+name: 🐛 Bug Report
+description: File a bug report to help improve AgentBrowser
+title: "[Bug]: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report an issue! Please check existing issues before submitting.
+  - type: textarea
+    id: description
+    attributes:
+      label: Describe the bug
+      description: A clear and concise description of what the bug is.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: Steps or minimal reproduction code to reproduce the behavior.
+      placeholder: |
+        1. Initialize SessionContext with...
+        2. Navigate to '...'
+        3. Execute action '@1'
+        4. See error
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: A clear and concise description of what you expected to happen.
+    validations:
+      required: true
+  - type: dropdown
+    id: role
+    attributes:
+      label: Affected Subsystem / Engineering Role
+      options:
+        - "🏛️ System Architect / Types"
+        - "⚙️ Core Engine / Session / Stealth"
+        - "🧠 AI Perception / DOM Compression / Element Registry"
+        - "🛡️ Security Sandbox / SSRF / Prompt Injection"
+        - "🧪 QA / Testing / Gatekeeper"
+        - "🔌 MCP Server"
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment Info
+      description: Node.js version, OS, Playwright version.
+      placeholder: "Node 22.0.0, Windows 11, Playwright 1.48.0"
+    validations:
+      required: true

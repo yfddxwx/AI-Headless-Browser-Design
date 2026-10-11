@@ -1,0 +1,75 @@
+{
+  "name": "@yifangdong/agent-browser",
+  "version": "0.1.0",
+  "description": "AI-Native Headless Browser for LLMs & Autonomous Agents with Semantic DOM Compression, Deterministic Ref Actions, and SSRF/Prompt Guardrails.",
+  "author": "yifangdong",
+  "license": "MIT",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "bin": {
+    "agent-browser-mcp": "./bin/agent-browser-mcp.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./mcp": {
+      "types": "./dist/mcp/mcp-server.d.ts",
+      "import": "./dist/mcp/mcp-server.js"
+    },
+    "./types": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/types/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "bin",
+    "README.md",
+    "LICENSE"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yifangdong/agent-browser.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yifangdong/agent-browser/issues"
+  },
+  "homepage": "https://github.com/yifangdong/agent-browser#readme",
+  "keywords": [
+    "headless-browser",
+    "llm",
+    "ai-agent",
+    "mcp",
+    "model-context-protocol",
+    "dom-compression",
+    "playwright",
+    "security",
+    "prompt-injection-defense",
+    "stealth"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test:unit": "vitest run tests/unit",
+    "test:func": "vitest run tests/functional",
+    "test:integ": "vitest run tests/integration",
+    "test:sec": "vitest run tests/security",
+    "test:all": "vitest run",
+    "gatekeeper": "tsx scripts/gatekeeper.ts",
+    "prepublishOnly": "npm run build && npm run gatekeeper"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.1",
+    "cheerio": "^1.2.0",
+    "playwright": "^1.64.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.3"
+  }
+}

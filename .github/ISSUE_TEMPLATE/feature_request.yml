@@ -1,0 +1,38 @@
+name: 💡 Feature Request
+description: Propose a new feature or capability for AgentBrowser
+title: "[Feature]: "
+labels: ["enhancement", "feature"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        We welcome feature proposals aligned with AI agent capabilities and browser automation!
+  - type: textarea
+    id: problem
+    attributes:
+      label: Is your feature request related to a problem?
+      description: A clear and concise description of the problem or limitation you are facing.
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution & Agent DX
+      description: Describe how this feature should work and how an LLM or Agent will consume it.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Describe any alternative solutions or features you've considered.
+  - type: dropdown
+    id: role
+    attributes:
+      label: Proposed Engineering Role Ownership
+      options:
+        - "🏛️ System Architect"
+        - "⚙️ Core Engine"
+        - "🧠 AI Perception & Protocol"
+        - "🛡️ Security & Sandbox"
+        - "🧪 QA Gatekeeper"
