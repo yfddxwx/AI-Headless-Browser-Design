@@ -3,8 +3,10 @@ import { SSRFGuard } from '../security/ssrf-guard.js';
 import { PageSnapshotService } from '../perception/page-snapshot.js';
 import { ActionExecutor } from '../action/action-executor.js';
 import { StateDiff } from '../action/state-diff.js';
-import { ActionResult, BrowserConfig, PagePerception, VisualSnapshot, TabInfo, TabSwitchResult, TabCloseResult, SessionVaultData, CaptchaDetectionResult, NetworkStats, NetworkShieldConfig } from '../types/index.js';
+import { ActionResult, BrowserConfig, PagePerception, VisualSnapshot, TabInfo, TabSwitchResult, TabCloseResult, SessionVaultData, CaptchaDetectionResult, NetworkStats, NetworkShieldConfig, PageMetadata, ExtractionResult, ExtractionSchema, StructuredExtractorOptions } from '../types/index.js';
 import { SOMOverlayEngine, SOMOverlayOptions } from '../perception/som-overlay.js';
+import { MetadataExtractor } from '../perception/metadata-extractor.js';
+import { StructuredExtractor } from '../perception/structured-extractor.js';
 import { TabManager } from './tab-manager.js';
 import { SessionVault } from './session-vault.js';
 import { CaptchaDetector } from '../security/captcha-detector.js';
@@ -16,6 +18,8 @@ export class SessionContext {
   private ssrfGuard: SSRFGuard;
   private networkShield: NetworkShield;
   private snapshotService: PageSnapshotService;
+  private structuredExtractor: StructuredExtractor;
+  private metadataExtractor: MetadataExtractor;
   private config: BrowserConfig;
 
   constructor(context: BrowserContext, page: Page, config: BrowserConfig = {}) {
@@ -26,6 +30,8 @@ export class SessionContext {
     this.networkShield.attachToPage(page).catch(() => {});
     this.tabManager = new TabManager(context, page, this.ssrfGuard, config.stealth !== false, this.networkShield);
     this.snapshotService = new PageSnapshotService();
+    this.structuredExtractor = new StructuredExtractor();
+    this.metadataExtractor = new MetadataExtractor();
   }
 
   public get page(): Page {
@@ -319,6 +325,26 @@ export class SessionContext {
 
   public getRawPage(): Page {
     return this.page;
+  }
+
+  public async extractData<T = any>(
+    schema: ExtractionSchema | Record<string, any>,
+    options?: StructuredExtractorOptions
+  ): Promise<ExtractionResult<T>> {
+    const html = await this.page.content();
+    return this.structuredExtractor.extract<T>(html, schema, options);
+  }
+
+  public async extractMetadata(): Promise<PageMetadata> {
+    const html = await this.page.content();
+    return this.metadataExtractor.extract(html);
+  }
+
+  public async extractFocusedContext(
+    keywordsOrSelectors?: string[]
+  ): Promise<{ markdown: string; tokensEstimated: number; tokensSavedRatio: number }> {
+    const html = await this.page.content();
+    return this.structuredExtractor.extractFocusedContext(html, keywordsOrSelectors);
   }
 
   public async close(): Promise<void> {

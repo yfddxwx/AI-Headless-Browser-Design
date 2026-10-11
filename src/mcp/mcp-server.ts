@@ -245,6 +245,40 @@ export class AgentBrowserMCPServer {
               },
             },
           },
+          {
+            name: 'browser_extract_structured_data',
+            description: 'Extract strongly-typed structured records matching a JSON schema (or field definitions) from the active page with semantic clustering and prompt injection defenses.',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                schema: {
+                  type: 'object',
+                  description: 'Target JSON schema or field mapping dictionary (e.g. { title: "string", price: "number" }).',
+                },
+                containerSelector: {
+                  type: 'string',
+                  description: 'Optional CSS selector hint for repeating item containers.',
+                },
+                preferMetadata: {
+                  type: 'boolean',
+                  description: 'Whether to prioritize JSON-LD / Schema.org metadata if present (default true).',
+                },
+                maxItems: {
+                  type: 'number',
+                  description: 'Maximum number of items to extract (for array schemas).',
+                },
+              },
+              required: ['schema'],
+            },
+          },
+          {
+            name: 'browser_extract_metadata',
+            description: 'Extract standard web metadata including Schema.org JSON-LD scripts, OpenGraph, Twitter Cards, canonical URL, and author.',
+            inputSchema: {
+              type: 'object',
+              properties: {},
+            },
+          },
         ],
       };
     });
@@ -422,6 +456,32 @@ export class AgentBrowserMCPServer {
           session.configureNetworkShield(args as any);
           return {
             content: [{ type: 'text', text: 'Network shield configuration updated successfully.' }],
+          };
+        }
+
+        case 'browser_extract_structured_data': {
+          const schema = request.params.arguments?.schema as any;
+          if (!schema) {
+            return {
+              isError: true,
+              content: [{ type: 'text', text: 'Schema argument is required for structured extraction.' }],
+            };
+          }
+          const options = {
+            containerSelector: request.params.arguments?.containerSelector ? String(request.params.arguments.containerSelector) : undefined,
+            preferMetadata: request.params.arguments?.preferMetadata !== undefined ? Boolean(request.params.arguments.preferMetadata) : true,
+            maxItems: request.params.arguments?.maxItems ? Number(request.params.arguments.maxItems) : undefined,
+          };
+          const result = await session.extractData(schema, options);
+          return {
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+          };
+        }
+
+        case 'browser_extract_metadata': {
+          const result = await session.extractMetadata();
+          return {
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
           };
         }
 

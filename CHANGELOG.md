@@ -47,3 +47,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added physical occlusion detection (`document.elementFromPoint`) to flag covered elements with `isOccluded: true` and dashed visual boxes.
   - Implemented viewport overlap scrolling (`scrollOverlap`) maintaining a continuous 20% buffer to prevent reading gaps across folds.
   - Exposed MCP tools: `browser_scroll_overlap`, `browser_get_network_stats`, and `browser_configure_network_shield`.
+- **📊 Schema-Driven Structured Extraction (Feature 06)**:
+  - Implemented `StructuredExtractor` supporting schema-driven extraction across HTML tables, repeating cards, and definition lists.
+  - Built `MetadataExtractor` for Schema.org JSON-LD (including `@graph`), OpenGraph, Twitter Cards, and canonical SEO metadata.
+  - Developed `ExtractionSanitizer` defending against indirect prompt injection (IPI) inside extracted fields, stripping dangerous executable HTML/XSS tags, and blocking prototype pollution attacks.
+  - Added focused context slicing (`extractFocusedContext`) achieving >90% token savings for downstream LLM prompts.
+  - Exposed MCP tools: `browser_extract_structured_data` and `browser_extract_metadata`.

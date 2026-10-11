@@ -145,3 +145,54 @@ export interface NetworkStats {
   blockedRequests: number;
   blockedResources: string[];
 }
+
+export type ExtractionFieldType = 'string' | 'number' | 'boolean' | 'array' | 'object' | 'date';
+
+export interface ExtractionFieldDef {
+  type: ExtractionFieldType;
+  description?: string;
+  selector?: string;
+  required?: boolean;
+  items?: ExtractionFieldDef;
+  properties?: Record<string, ExtractionFieldDef>;
+}
+
+export interface ExtractionSchema {
+  name?: string;
+  description?: string;
+  type?: 'object' | 'array';
+  properties?: Record<string, ExtractionFieldDef | any>;
+  items?: ExtractionFieldDef | any;
+  [key: string]: any;
+}
+
+export interface PageMetadata {
+  title?: string;
+  description?: string;
+  canonicalUrl?: string;
+  author?: string;
+  language?: string;
+  publishedTime?: string;
+  openGraph?: Record<string, string>;
+  twitter?: Record<string, string>;
+  jsonLd?: any[];
+}
+
+export interface StructuredExtractorOptions {
+  containerSelector?: string;
+  preferMetadata?: boolean;
+  maxItems?: number;
+  sanitizePromptInjection?: boolean;
+}
+
+export interface ExtractionResult<T = any> {
+  success: boolean;
+  data: T;
+  source: 'json-ld' | 'opengraph' | 'microdata' | 'semantic-table' | 'semantic-card' | 'heuristic';
+  confidence: number;
+  itemCount: number;
+  warnings?: string[];
+  securityNotices?: string[];
+  tokensSavedRatio?: number;
+  metadata?: PageMetadata;
+}

@@ -112,6 +112,31 @@ run();
 
 ---
 
+### 3. Schema-Driven Structured Extraction (Stagehand-grade)
+
+```typescript
+// Extract strongly typed records without regex or LLM hallucinations
+const productSchema = {
+  type: 'array',
+  items: {
+    title: 'string',
+    price: 'number',
+    inStock: 'boolean',
+  },
+};
+
+const result = await session.extractData(productSchema);
+console.log(`Extracted ${result.itemCount} items from source: ${result.source}`);
+console.log(result.data);
+// Output: [ { title: "量子计算套件", price: 18800, inStock: true }, ... ]
+
+// Extract Schema.org JSON-LD and OpenGraph metadata
+const metadata = await session.extractMetadata();
+console.log(metadata.title, metadata.author, metadata.jsonLd);
+```
+
+---
+
 ## 🔌 Model Context Protocol (MCP) Integration
 
 AgentBrowser provides an out-of-the-box standard MCP Server for **Claude Desktop**, **Cursor**, **Gemini**, and custom agent frameworks.
@@ -140,6 +165,15 @@ npx agent-browser-mcp
 - `browser_navigate`: Safe navigation (SSRF blocked) returning compact markdown & `@Ref` list.
 - `browser_act`: Execute actions (`click`, `fill`, `scroll`) using element references (`@1`, `@2`).
 - `browser_get_snapshot`: Retrieve current live perception snapshot and element registry.
+- `browser_get_visual_snapshot`: Set-of-Mark visual coordinate overlay and screenshot for multimodal vision models.
+- `browser_click_coordinate`: Physical viewport pixel coordinate click.
+- `browser_list_tabs` / `browser_create_tab` / `browser_switch_tab` / `browser_close_tab`: Deterministic multi-tab management.
+- `browser_export_vault` / `browser_import_vault`: SessionVault authentication and cookie state persistence.
+- `browser_detect_captcha`: Active detection of Cloudflare Turnstile, reCAPTCHA, and bot challenges.
+- `browser_scroll_overlap`: Continuous scrolling with 20% viewport overlap buffer.
+- `browser_get_network_stats` / `browser_configure_network_shield`: NetworkShield tracker/ad blocking controls.
+- `browser_extract_structured_data`: Schema-driven structured data extraction with prompt injection containment.
+- `browser_extract_metadata`: Schema.org JSON-LD, OpenGraph, and Twitter card metadata extraction.
 
 ---
 
