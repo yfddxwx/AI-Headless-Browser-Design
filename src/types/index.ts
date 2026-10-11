@@ -97,6 +97,7 @@ export interface BrowserConfig {
   cdpUrl?: string;
   cdpHeaders?: Record<string, string>;
   remoteCdp?: RemoteCDPConfig;
+  ignoreHTTPSErrors?: boolean;
 }
 
 export interface SecurityCheckResult {

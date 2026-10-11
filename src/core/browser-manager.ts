@@ -71,6 +71,7 @@ export class BrowserManager {
     const context = await this.browser.newContext({
       viewport: mergedConfig.viewport,
       userAgent: mergedConfig.userAgent || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+      ignoreHTTPSErrors: mergedConfig.ignoreHTTPSErrors ?? true,
     });
 
     if (mergedConfig.stealth !== false) {
