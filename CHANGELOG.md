@@ -31,3 +31,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Implemented `clickCoordinate(x, y)` for physical pixel grounding.
   - Added MCP tools `browser_get_visual_snapshot` and `browser_click_coordinate`.
   - Strengthened visual prompt injection defense against zero-dimension and off-screen nodes.
+- **📑 Tab Manager & Popup History Tree (Feature 03)**:
+  - Implemented `TabManager` supporting deterministic tab IDs (`tab-1`, `tab-2`), creation, switching, and closing.
+  - Automated popup capture on `context.on('page')` linking tree relationships (`openerTabId`).
+  - Integrated full multi-tab situational awareness (`tabId` and `activeTabs`) directly into `PagePerception`.
+  - Added MCP tools: `browser_list_tabs`, `browser_create_tab`, `browser_switch_tab`, and `browser_close_tab`.
+  - Enforced SSRF security validation across tab creation and popup events.

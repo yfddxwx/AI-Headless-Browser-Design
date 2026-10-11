@@ -3,22 +3,27 @@ import { SSRFGuard } from '../security/ssrf-guard.js';
 import { PageSnapshotService } from '../perception/page-snapshot.js';
 import { ActionExecutor } from '../action/action-executor.js';
 import { StateDiff } from '../action/state-diff.js';
-import { ActionResult, BrowserConfig, PagePerception, VisualSnapshot } from '../types/index.js';
+import { ActionResult, BrowserConfig, PagePerception, VisualSnapshot, TabInfo, TabSwitchResult, TabCloseResult } from '../types/index.js';
 import { SOMOverlayEngine, SOMOverlayOptions } from '../perception/som-overlay.js';
+import { TabManager } from './tab-manager.js';
 
 export class SessionContext {
   private context: BrowserContext;
-  private page: Page;
+  private tabManager: TabManager;
   private ssrfGuard: SSRFGuard;
   private snapshotService: PageSnapshotService;
   private config: BrowserConfig;
 
   constructor(context: BrowserContext, page: Page, config: BrowserConfig = {}) {
     this.context = context;
-    this.page = page;
     this.config = config;
     this.ssrfGuard = new SSRFGuard(config.allowedDomains || [], config.blockPrivateIPs !== false);
+    this.tabManager = new TabManager(context, page, this.ssrfGuard, config.stealth !== false);
     this.snapshotService = new PageSnapshotService();
+  }
+
+  public get page(): Page {
+    return this.tabManager.getActivePage();
   }
 
   public async navigate(url: string): Promise<PagePerception> {
@@ -44,7 +49,46 @@ export class SessionContext {
   }
 
   public async getPerception(): Promise<PagePerception> {
-    return this.snapshotService.capturePageSnapshot(this.page);
+    const perception = await this.snapshotService.capturePageSnapshot(this.page);
+    perception.tabId = this.tabManager.getActiveTabId();
+    perception.activeTabs = await this.tabManager.listTabs();
+    return perception;
+  }
+
+  public async createTab(url?: string): Promise<{ tabId: string; perception?: PagePerception }> {
+    const { tabId } = await this.tabManager.createTab(url);
+    let perception: PagePerception | undefined;
+    if (url) {
+      // Temporarily switch or take snapshot of new tab
+      const currentActive = this.tabManager.getActiveTabId();
+      await this.tabManager.switchTab(tabId);
+      perception = await this.getPerception();
+      // restore if needed, or leave active
+    }
+    return { tabId, perception };
+  }
+
+  public async switchTab(tabId: string): Promise<TabSwitchResult> {
+    const previousTabId = this.tabManager.getActiveTabId();
+    await this.tabManager.switchTab(tabId);
+    const perception = await this.getPerception();
+    return {
+      previousTabId,
+      currentTabId: tabId,
+      perception,
+    };
+  }
+
+  public async closeTab(tabId: string): Promise<TabCloseResult> {
+    return this.tabManager.closeTab(tabId);
+  }
+
+  public async listTabs(): Promise<TabInfo[]> {
+    return this.tabManager.listTabs();
+  }
+
+  public getActiveTabId(): string {
+    return this.tabManager.getActiveTabId();
   }
 
   public async click(ref: string): Promise<ActionResult> {

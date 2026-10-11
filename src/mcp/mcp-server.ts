@@ -118,6 +118,55 @@ export class AgentBrowserMCPServer {
               required: ['x', 'y'],
             },
           },
+          {
+            name: 'browser_list_tabs',
+            description: 'List all open browser tabs with their tabId, title, URL, and active status.',
+            inputSchema: {
+              type: 'object',
+              properties: {},
+            },
+          },
+          {
+            name: 'browser_create_tab',
+            description: 'Open a new browser tab, optionally navigating to a specified URL.',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                url: {
+                  type: 'string',
+                  description: 'Optional initial URL for the new tab.',
+                },
+              },
+            },
+          },
+          {
+            name: 'browser_switch_tab',
+            description: 'Switch active focus to a specific tab by tabId (e.g. "tab-2") and return its page perception.',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                tabId: {
+                  type: 'string',
+                  description: 'The target tab ID to switch to.',
+                },
+              },
+              required: ['tabId'],
+            },
+          },
+          {
+            name: 'browser_close_tab',
+            description: 'Close a specific browser tab by tabId.',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                tabId: {
+                  type: 'string',
+                  description: 'The tab ID to close.',
+                },
+              },
+              required: ['tabId'],
+            },
+          },
         ],
       };
     });
@@ -205,6 +254,37 @@ export class AgentBrowserMCPServer {
           const x = Number(request.params.arguments?.x);
           const y = Number(request.params.arguments?.y);
           const result = await session.clickCoordinate(x, y);
+          return {
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+          };
+        }
+
+        case 'browser_list_tabs': {
+          const tabs = await session.listTabs();
+          return {
+            content: [{ type: 'text', text: JSON.stringify(tabs, null, 2) }],
+          };
+        }
+
+        case 'browser_create_tab': {
+          const url = request.params.arguments?.url ? String(request.params.arguments.url) : undefined;
+          const result = await session.createTab(url);
+          return {
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+          };
+        }
+
+        case 'browser_switch_tab': {
+          const tabId = String(request.params.arguments?.tabId || '');
+          const result = await session.switchTab(tabId);
+          return {
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+          };
+        }
+
+        case 'browser_close_tab': {
+          const tabId = String(request.params.arguments?.tabId || '');
+          const result = await session.closeTab(tabId);
           return {
             content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
           };

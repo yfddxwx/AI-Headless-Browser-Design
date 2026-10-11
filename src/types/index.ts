@@ -34,9 +34,32 @@ export interface VisualSnapshot {
   totalAnnotatedCount: number;
 }
 
+export interface TabInfo {
+  tabId: string;
+  url: string;
+  title: string;
+  isActive: boolean;
+  openerTabId?: string;
+  createdAt: number;
+}
+
+export interface TabSwitchResult {
+  previousTabId: string;
+  currentTabId: string;
+  perception: PagePerception;
+}
+
+export interface TabCloseResult {
+  closedTabId: string;
+  activeTabId: string;
+  remainingTabs: TabInfo[];
+}
+
 export interface PagePerception {
   url: string;
   title: string;
+  tabId?: string;
+  activeTabs?: TabInfo[];
   compressedMarkdown: string;
   interactiveElements: InteractiveElement[];
   rawHtmlLength: number;
