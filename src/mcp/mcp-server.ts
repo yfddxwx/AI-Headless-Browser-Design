@@ -205,6 +205,46 @@ export class AgentBrowserMCPServer {
               properties: {},
             },
           },
+          {
+            name: 'browser_scroll_overlap',
+            description: 'Scroll viewport continuously with a 20% overlap buffer to avoid cutting off multi-line content.',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                direction: {
+                  type: 'string',
+                  enum: ['down', 'up'],
+                  description: 'Scroll direction (down or up).',
+                },
+                overlapRatio: {
+                  type: 'number',
+                  description: 'Overlap ratio buffer between 0.0 and 0.5 (default 0.2).',
+                },
+              },
+              required: ['direction'],
+            },
+          },
+          {
+            name: 'browser_get_network_stats',
+            description: 'Fetch network shielding statistics: total requests, blocked trackers/ads, and intercepted resources.',
+            inputSchema: {
+              type: 'object',
+              properties: {},
+            },
+          },
+          {
+            name: 'browser_configure_network_shield',
+            description: 'Update network shield traffic blocking configuration (e.g. blockMedia, blockAnalytics, blockFonts).',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                enabled: { type: 'boolean' },
+                blockAnalytics: { type: 'boolean' },
+                blockMedia: { type: 'boolean' },
+                blockFonts: { type: 'boolean' },
+              },
+            },
+          },
         ],
       };
     });
@@ -356,6 +396,32 @@ export class AgentBrowserMCPServer {
           const result = await session.detectCaptcha();
           return {
             content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+          };
+        }
+
+        case 'browser_scroll_overlap': {
+          const direction = (request.params.arguments?.direction as any) || 'down';
+          const overlap = request.params.arguments?.overlapRatio !== undefined 
+            ? Number(request.params.arguments.overlapRatio) 
+            : 0.2;
+          const result = await session.scrollOverlap(direction, overlap);
+          return {
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+          };
+        }
+
+        case 'browser_get_network_stats': {
+          const stats = session.getNetworkStats();
+          return {
+            content: [{ type: 'text', text: JSON.stringify(stats, null, 2) }],
+          };
+        }
+
+        case 'browser_configure_network_shield': {
+          const args = request.params.arguments || {};
+          session.configureNetworkShield(args as any);
+          return {
+            content: [{ type: 'text', text: 'Network shield configuration updated successfully.' }],
           };
         }
 

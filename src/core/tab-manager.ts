@@ -2,6 +2,7 @@ import { BrowserContext, Page } from 'playwright';
 import { TabInfo, TabCloseResult } from '../types/index.js';
 import { SSRFGuard } from '../security/ssrf-guard.js';
 import { STEALTH_SCRIPT } from './stealth.js';
+import { NetworkShield } from './network-shield.js';
 
 interface TabEntry {
   page: Page;
@@ -15,11 +16,19 @@ export class TabManager {
   private tabCounter: number = 0;
   private ssrfGuard: SSRFGuard;
   private stealth: boolean;
+  private networkShield?: NetworkShield;
 
-  constructor(context: BrowserContext, initialPage: Page, ssrfGuard: SSRFGuard, stealth: boolean = true) {
+  constructor(
+    context: BrowserContext,
+    initialPage: Page,
+    ssrfGuard: SSRFGuard,
+    stealth: boolean = true,
+    networkShield?: NetworkShield
+  ) {
     this.context = context;
     this.ssrfGuard = ssrfGuard;
     this.stealth = stealth;
+    this.networkShield = networkShield;
 
     // Register initial page as tab-1
     this.tabCounter++;
@@ -49,6 +58,10 @@ export class TabManager {
       this.tabCounter++;
       const newTabId = `tab-${this.tabCounter}`;
       const openerId = this.activeTabId;
+
+      if (this.networkShield) {
+        this.networkShield.attachToPage(newPage).catch(() => {});
+      }
 
       if (this.stealth) {
         try {

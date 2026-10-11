@@ -30,6 +30,22 @@ export class ActionExecutor {
     }
   }
 
+  public static async scrollOverlap(page: Page, direction: 'down' | 'up', overlapRatio: number = 0.2): Promise<number> {
+    const scrollAmount = await page.evaluate((ratio) => {
+      const vh = window.innerHeight;
+      const step = Math.max(100, Math.round(vh * (1 - ratio)));
+      return step;
+    }, overlapRatio);
+
+    if (direction === 'down') {
+      await page.evaluate((y) => window.scrollBy(0, y), scrollAmount);
+    } else {
+      await page.evaluate((y) => window.scrollBy(0, -y), scrollAmount);
+    }
+
+    return scrollAmount;
+  }
+
   public static async clickCoordinate(page: Page, x: number, y: number): Promise<void> {
     await page.mouse.click(x, y);
   }

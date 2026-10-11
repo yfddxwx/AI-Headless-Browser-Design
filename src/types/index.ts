@@ -17,11 +17,13 @@ export interface InteractiveElement {
   disabled: boolean;
   selector: string;        // precise CSS or XPath selector
   boundingBox?: BoundingBox;
+  isOccluded?: boolean;    // whether the element is covered by a modal/backdrop
 }
 
 export interface VisualElement extends InteractiveElement {
   boundingBox: BoundingBox;
   isInViewport: boolean;
+  isOccluded?: boolean;
 }
 
 export interface VisualSnapshot {
@@ -90,6 +92,7 @@ export interface BrowserConfig {
   userAgent?: string;
   allowedDomains?: string[]; // Empty means unrestricted (except private IPs)
   blockPrivateIPs?: boolean;
+  networkShield?: NetworkShieldConfig;
 }
 
 export interface SecurityCheckResult {
@@ -127,4 +130,18 @@ export interface CaptchaDetectionResult {
   type?: 'cloudflare_turnstile' | 'recaptcha' | 'hcaptcha' | 'generic_challenge';
   message?: string;
   selector?: string;
+}
+
+export interface NetworkShieldConfig {
+  enabled?: boolean;
+  blockAnalytics?: boolean;   // Blocks Google Analytics, Facebook Pixel, DoubleClick, etc.
+  blockMedia?: boolean;       // Blocks images, audio, video for ultra-fast text/DOM extraction
+  blockFonts?: boolean;       // Blocks custom web fonts to save bandwidth
+  customBlockedPatterns?: string[];
+}
+
+export interface NetworkStats {
+  totalRequests: number;
+  blockedRequests: number;
+  blockedResources: string[];
 }

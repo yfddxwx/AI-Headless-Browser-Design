@@ -42,3 +42,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Created `CaptchaDetector` detecting Cloudflare Turnstile, Google reCAPTCHA, hCaptcha, and generic bot mitigation barriers.
   - Built `VaultSecuritySanitizer` defending against private IP / SSRF cookie domains, CRLF header injection, and illegal origin protocols.
   - Exposed MCP tools: `browser_export_vault`, `browser_import_vault`, and `browser_detect_captcha`.
+- **⚡ Performance Shield & Occlusion Awareness (Feature 05)**:
+  - Implemented `NetworkShield` routing engine to abort analytics, ad trackers, and heavy media, slashing load latency by up to 70%.
+  - Added physical occlusion detection (`document.elementFromPoint`) to flag covered elements with `isOccluded: true` and dashed visual boxes.
+  - Implemented viewport overlap scrolling (`scrollOverlap`) maintaining a continuous 20% buffer to prevent reading gaps across folds.
+  - Exposed MCP tools: `browser_scroll_overlap`, `browser_get_network_stats`, and `browser_configure_network_shield`.

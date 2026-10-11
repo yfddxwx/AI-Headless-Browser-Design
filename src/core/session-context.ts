@@ -3,16 +3,18 @@ import { SSRFGuard } from '../security/ssrf-guard.js';
 import { PageSnapshotService } from '../perception/page-snapshot.js';
 import { ActionExecutor } from '../action/action-executor.js';
 import { StateDiff } from '../action/state-diff.js';
-import { ActionResult, BrowserConfig, PagePerception, VisualSnapshot, TabInfo, TabSwitchResult, TabCloseResult, SessionVaultData, CaptchaDetectionResult } from '../types/index.js';
+import { ActionResult, BrowserConfig, PagePerception, VisualSnapshot, TabInfo, TabSwitchResult, TabCloseResult, SessionVaultData, CaptchaDetectionResult, NetworkStats, NetworkShieldConfig } from '../types/index.js';
 import { SOMOverlayEngine, SOMOverlayOptions } from '../perception/som-overlay.js';
 import { TabManager } from './tab-manager.js';
 import { SessionVault } from './session-vault.js';
 import { CaptchaDetector } from '../security/captcha-detector.js';
+import { NetworkShield } from './network-shield.js';
 
 export class SessionContext {
   private context: BrowserContext;
   private tabManager: TabManager;
   private ssrfGuard: SSRFGuard;
+  private networkShield: NetworkShield;
   private snapshotService: PageSnapshotService;
   private config: BrowserConfig;
 
@@ -20,7 +22,9 @@ export class SessionContext {
     this.context = context;
     this.config = config;
     this.ssrfGuard = new SSRFGuard(config.allowedDomains || [], config.blockPrivateIPs !== false);
-    this.tabManager = new TabManager(context, page, this.ssrfGuard, config.stealth !== false);
+    this.networkShield = new NetworkShield(config.networkShield);
+    this.networkShield.attachToPage(page).catch(() => {});
+    this.tabManager = new TabManager(context, page, this.ssrfGuard, config.stealth !== false, this.networkShield);
     this.snapshotService = new PageSnapshotService();
   }
 
@@ -264,6 +268,49 @@ export class SessionContext {
 
   public async detectCaptcha(): Promise<CaptchaDetectionResult> {
     return CaptchaDetector.detect(this.page);
+  }
+
+  public async scrollOverlap(direction: 'down' | 'up', overlapRatio: number = 0.2): Promise<ActionResult> {
+    const before = await this.getPerception();
+    const urlBefore = this.page.url();
+    const titleBefore = await this.page.title();
+
+    try {
+      const distance = await ActionExecutor.scrollOverlap(this.page, direction, overlapRatio);
+      await this.page.waitForTimeout(300);
+      const after = await this.getPerception();
+      const diffSummary = StateDiff.computeSummary(before, after);
+
+      return {
+        success: true,
+        action: `scroll_overlap_${direction}`,
+        message: `Scrolled ${direction} with 20% viewport overlap (${distance}px).`,
+        urlBefore,
+        urlAfter: urlBefore,
+        titleBefore,
+        titleAfter: await this.page.title(),
+        diffSummary,
+      };
+    } catch (err: any) {
+      return {
+        success: false,
+        action: `scroll_overlap_${direction}`,
+        message: `Failed to scroll with overlap: ${err.message}`,
+        urlBefore,
+        urlAfter: urlBefore,
+        titleBefore,
+        titleAfter: titleBefore,
+        error: err.message,
+      };
+    }
+  }
+
+  public getNetworkStats(): NetworkStats {
+    return this.networkShield.getStats();
+  }
+
+  public configureNetworkShield(config: Partial<NetworkShieldConfig>): void {
+    this.networkShield.updateConfig(config);
   }
 
   public async screenshot(): Promise<Buffer> {

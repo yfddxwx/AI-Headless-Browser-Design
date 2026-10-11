@@ -90,10 +90,21 @@ export class SOMOverlayEngine {
           return;
         }
 
+        // Check Physical Occlusion (e.g. covered by modal or floating banner)
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+        let isOccluded = false;
+        if (centerX >= 0 && centerX <= vw && centerY >= 0 && centerY <= vh) {
+          const topEl = document.elementFromPoint(centerX, centerY);
+          if (topEl && topEl !== el && !el.contains(topEl) && !topEl.contains(el)) {
+            isOccluded = true;
+          }
+        }
+
         const color = palette[colorIndex % palette.length];
         colorIndex++;
 
-        // 1. Create Bounding Box highlight
+        // 1. Create Bounding Box highlight (dashed if occluded)
         const box = document.createElement('div');
         box.style.cssText = `
           position: fixed;
@@ -101,14 +112,15 @@ export class SOMOverlayEngine {
           left: ${Math.max(0, rect.left)}px;
           width: ${Math.min(vw - rect.left, rect.width)}px;
           height: ${Math.min(vh - rect.top, rect.height)}px;
-          border: 2px solid ${color};
+          border: 2px ${isOccluded ? 'dashed' : 'solid'} ${color};
           box-sizing: border-box;
+          opacity: ${isOccluded ? '0.5' : '1.0'};
           pointer-events: none;
         `;
 
         // 2. Create Ref Badge label
         const badge = document.createElement('div');
-        badge.innerText = ref;
+        badge.innerText = isOccluded ? `${ref} [遮挡]` : ref;
         badge.style.cssText = `
           position: fixed;
           top: ${Math.max(0, rect.top - 14)}px;
@@ -143,6 +155,7 @@ export class SOMOverlayEngine {
             height: Math.round(rect.height),
           },
           isInViewport: true,
+          isOccluded,
         });
       });
 
