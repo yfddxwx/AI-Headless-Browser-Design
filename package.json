@@ -1,8 +1,8 @@
 {
-  "name": "@yifangdong/agent-browser",
+  "name": "@yfddxwx/ai-headless-browser",
   "version": "0.1.0",
   "description": "AI-Native Headless Browser for LLMs & Autonomous Agents with Semantic DOM Compression, Deterministic Ref Actions, and SSRF/Prompt Guardrails.",
-  "author": "yifangdong",
+  "author": "yifangdong <fangdongyi674@gmail.com>",
   "license": "MIT",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -32,12 +32,12 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/yifangdong/agent-browser.git"
+    "url": "git+https://github.com/yfddxwx/AI-Headless-Browser-Design.git"
   },
   "bugs": {
-    "url": "https://github.com/yifangdong/agent-browser/issues"
+    "url": "https://github.com/yfddxwx/AI-Headless-Browser-Design/issues"
   },
-  "homepage": "https://github.com/yifangdong/agent-browser#readme",
+  "homepage": "https://github.com/yfddxwx/AI-Headless-Browser-Design#readme",
   "keywords": [
     "headless-browser",
     "llm",

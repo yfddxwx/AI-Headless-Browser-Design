@@ -8,12 +8,12 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/yifangdong/agent-browser/actions"><img src="https://img.shields.io/badge/CI-Passing-brightgreen?style=flat-square&logo=github-actions" alt="CI" /></a>
+  <a href="https://github.com/yfddxwx/AI-Headless-Browser-Design/actions"><img src="https://img.shields.io/badge/CI-Passing-brightgreen?style=flat-square&logo=github-actions" alt="CI" /></a>
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square" alt="License: MIT" /></a>
   <a href="https://nodejs.org/"><img src="https://img.shields.io/badge/Node-%3E%3D20.0.0-green.svg?style=flat-square&logo=node.js" alt="Node" /></a>
   <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-Strict-blue?style=flat-square&logo=typescript" alt="TypeScript" /></a>
   <a href="https://modelcontextprotocol.io/"><img src="https://img.shields.io/badge/MCP-Compatible-purple?style=flat-square" alt="MCP Compatible" /></a>
-  <a href="https://github.com/yifangdong/agent-browser/pulls"><img src="https://img.shields.io/badge/PRs-welcome-orange.svg?style=flat-square" alt="PRs Welcome" /></a>
+  <a href="https://github.com/yfddxwx/AI-Headless-Browser-Design/pulls"><img src="https://img.shields.io/badge/PRs-welcome-orange.svg?style=flat-square" alt="PRs Welcome" /></a>
 </p>
 
 ---
@@ -80,7 +80,7 @@ This project is developed using an **Autonomous Engineering Team Model**, where 
 ### 1. Installation
 
 ```bash
-npm install @yifangdong/agent-browser
+npm install @yfddxwx/ai-headless-browser
 # Install browser binaries
 npx playwright install chromium
 ```
@@ -88,7 +88,7 @@ npx playwright install chromium
 ### 2. Programmatic Usage (Node.js / TypeScript)
 
 ```typescript
-import { BrowserManager } from '@yifangdong/agent-browser';
+import { BrowserManager } from '@yfddxwx/ai-headless-browser';
 
 async function run() {
   const browser = new BrowserManager({ headless: true, stealth: true });
@@ -129,7 +129,7 @@ npx agent-browser-mcp
   "mcpServers": {
     "agent-browser": {
       "command": "npx",
-      "args": ["-y", "@yifangdong/agent-browser"]
+      "args": ["-y", "@yfddxwx/ai-headless-browser"]
     }
   }
 }

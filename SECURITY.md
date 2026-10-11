@@ -16,7 +16,7 @@ Security is a foundational pillar of **AgentBrowser**. If you discover a vulnera
 **Please DO NOT open a public GitHub issue.**
 
 ### Reporting Process
-1. Email details to the repository maintainer (`yifangdong`) or create a **Private Security Advisory** via GitHub's [Security Advisories tab](https://github.com/yifangdong/agent-browser/security/advisories/new).
+1. Email details directly to the repository maintainer at **`fangdongyi674@gmail.com`** or create a **Private Security Advisory** via GitHub's [Security Advisories tab](https://github.com/yfddxwx/AI-Headless-Browser-Design/security/advisories/new).
 2. Include reproduction steps, sample malicious HTML payloads, and expected versus actual behavior.
 3. You will receive an acknowledgment within 48 hours.
 4. We follow coordinated vulnerability disclosure principles.
