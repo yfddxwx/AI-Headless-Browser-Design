@@ -93,6 +93,7 @@ export interface BrowserConfig {
   allowedDomains?: string[]; // Empty means unrestricted (except private IPs)
   blockPrivateIPs?: boolean;
   networkShield?: NetworkShieldConfig;
+  hitl?: HITLConfig;
 }
 
 export interface SecurityCheckResult {
@@ -125,11 +126,60 @@ export interface SessionVaultData {
   userAgent?: string;
 }
 
+export type ChallengeType =
+  | 'cloudflare_turnstile'
+  | 'recaptcha'
+  | 'hcaptcha'
+  | 'two_factor_auth'
+  | 'generic_challenge';
+
 export interface CaptchaDetectionResult {
   detected: boolean;
-  type?: 'cloudflare_turnstile' | 'recaptcha' | 'hcaptcha' | 'generic_challenge';
+  type?: ChallengeType;
   message?: string;
   selector?: string;
+}
+
+export type ChallengeStatus =
+  | 'detected'
+  | 'waiting_for_resolution'
+  | 'resolved'
+  | 'failed'
+  | 'timeout';
+
+export type CircuitBreakerState = 'closed' | 'open' | 'half_open';
+
+export interface ChallengeEvent {
+  challengeId: string;
+  type: ChallengeType;
+  url: string;
+  detectedAt: number;
+  expiresAt: number;
+  screenshotBase64?: string;
+  message: string;
+  status: ChallengeStatus;
+  metadata?: Record<string, any>;
+}
+
+export interface ChallengeResolution {
+  challengeId: string;
+  solved: boolean;
+  resolutionToken?: string;
+  notes?: string;
+  resolvedBy?: 'human' | 'automated_hook' | 'system';
+}
+
+export type ChallengeSolverHook = (
+  event: ChallengeEvent
+) => Promise<ChallengeResolution | boolean | void>;
+
+export interface HITLConfig {
+  enabled?: boolean;
+  autoBreakOnCaptcha?: boolean;
+  defaultTimeoutMs?: number; // e.g. 120000 (2 minutes)
+  solverHook?: ChallengeSolverHook;
+  onChallengeDetected?: (event: ChallengeEvent) => void;
+  onChallengeResolved?: (resolution: ChallengeResolution) => void;
 }
 
 export interface NetworkShieldConfig {

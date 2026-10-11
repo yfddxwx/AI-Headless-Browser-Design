@@ -3,7 +3,7 @@ import { SSRFGuard } from '../security/ssrf-guard.js';
 import { PageSnapshotService } from '../perception/page-snapshot.js';
 import { ActionExecutor } from '../action/action-executor.js';
 import { StateDiff } from '../action/state-diff.js';
-import { ActionResult, BrowserConfig, PagePerception, VisualSnapshot, TabInfo, TabSwitchResult, TabCloseResult, SessionVaultData, CaptchaDetectionResult, NetworkStats, NetworkShieldConfig, PageMetadata, ExtractionResult, ExtractionSchema, StructuredExtractorOptions } from '../types/index.js';
+import { ActionResult, BrowserConfig, PagePerception, VisualSnapshot, TabInfo, TabSwitchResult, TabCloseResult, SessionVaultData, CaptchaDetectionResult, NetworkStats, NetworkShieldConfig, PageMetadata, ExtractionResult, ExtractionSchema, StructuredExtractorOptions, ChallengeEvent, ChallengeResolution, HITLConfig, ChallengeType } from '../types/index.js';
 import { SOMOverlayEngine, SOMOverlayOptions } from '../perception/som-overlay.js';
 import { MetadataExtractor } from '../perception/metadata-extractor.js';
 import { StructuredExtractor } from '../perception/structured-extractor.js';
@@ -11,6 +11,7 @@ import { TabManager } from './tab-manager.js';
 import { SessionVault } from './session-vault.js';
 import { CaptchaDetector } from '../security/captcha-detector.js';
 import { NetworkShield } from './network-shield.js';
+import { HITLCircuitBreaker } from './hitl-circuit-breaker.js';
 
 export class SessionContext {
   private context: BrowserContext;
@@ -20,6 +21,7 @@ export class SessionContext {
   private snapshotService: PageSnapshotService;
   private structuredExtractor: StructuredExtractor;
   private metadataExtractor: MetadataExtractor;
+  private hitlBreaker: HITLCircuitBreaker;
   private config: BrowserConfig;
 
   constructor(context: BrowserContext, page: Page, config: BrowserConfig = {}) {
@@ -32,6 +34,7 @@ export class SessionContext {
     this.snapshotService = new PageSnapshotService();
     this.structuredExtractor = new StructuredExtractor();
     this.metadataExtractor = new MetadataExtractor();
+    this.hitlBreaker = new HITLCircuitBreaker(config.hitl);
   }
 
   public get page(): Page {
@@ -39,6 +42,9 @@ export class SessionContext {
   }
 
   public async navigate(url: string): Promise<PagePerception> {
+    // 0. HITL Circuit breaker check
+    this.hitlBreaker.assertCanExecute('navigate');
+
     // 1. SSRF Guard verification
     const securityCheck = this.ssrfGuard.validateUrl(url);
     if (!securityCheck.safe) {
@@ -51,7 +57,25 @@ export class SessionContext {
       timeout: this.config.timeout || 30000,
     });
 
-    // 3. Capture AI-optimized perception snapshot
+    // 3. Optional auto-break on bot challenge / 2FA
+    if (this.config.hitl?.autoBreakOnCaptcha) {
+      const captcha = await this.detectCaptcha();
+      if (captcha.detected) {
+        let screenshotBase64: string | undefined;
+        try {
+          const buf = await this.screenshot();
+          screenshotBase64 = buf.toString('base64');
+        } catch {}
+        this.hitlBreaker.trip({
+          type: captcha.type || 'generic_challenge',
+          url,
+          message: captcha.message || 'Captcha or verification challenge barrier detected.',
+          screenshotBase64,
+        }).catch(() => {});
+      }
+    }
+
+    // 4. Capture AI-optimized perception snapshot
     return this.getPerception();
   }
 
@@ -104,11 +128,13 @@ export class SessionContext {
   }
 
   public async click(ref: string): Promise<ActionResult> {
-    const before = await this.getPerception();
     const urlBefore = this.page.url();
-    const titleBefore = await this.page.title();
+    let titleBefore = '';
+    try { titleBefore = await this.page.title(); } catch {}
 
     try {
+      this.hitlBreaker.assertCanExecute('click');
+      const before = await this.getPerception();
       await ActionExecutor.click(this.page, ref);
       await this.page.waitForTimeout(500); // brief wait for reactive mutations
       const after = await this.getPerception();
@@ -142,11 +168,13 @@ export class SessionContext {
   }
 
   public async fill(ref: string, text: string): Promise<ActionResult> {
-    const before = await this.getPerception();
     const urlBefore = this.page.url();
-    const titleBefore = await this.page.title();
+    let titleBefore = '';
+    try { titleBefore = await this.page.title(); } catch {}
 
     try {
+      this.hitlBreaker.assertCanExecute('fill');
+      const before = await this.getPerception();
       await ActionExecutor.fill(this.page, ref, text);
       const after = await this.getPerception();
       const diffSummary = StateDiff.computeSummary(before, after);
@@ -178,11 +206,13 @@ export class SessionContext {
   }
 
   public async scroll(direction: 'down' | 'up' | 'top' | 'bottom'): Promise<ActionResult> {
-    const before = await this.getPerception();
     const urlBefore = this.page.url();
-    const titleBefore = await this.page.title();
+    let titleBefore = '';
+    try { titleBefore = await this.page.title(); } catch {}
 
     try {
+      this.hitlBreaker.assertCanExecute(`scroll_${direction}`);
+      const before = await this.getPerception();
       await ActionExecutor.scroll(this.page, direction);
       await this.page.waitForTimeout(300);
       const after = await this.getPerception();
@@ -219,11 +249,13 @@ export class SessionContext {
   }
 
   public async clickCoordinate(x: number, y: number): Promise<ActionResult> {
-    const before = await this.getPerception();
     const urlBefore = this.page.url();
-    const titleBefore = await this.page.title();
+    let titleBefore = '';
+    try { titleBefore = await this.page.title(); } catch {}
 
     try {
+      this.hitlBreaker.assertCanExecute('click_coordinate');
+      const before = await this.getPerception();
       await ActionExecutor.clickCoordinate(this.page, x, y);
       await this.page.waitForTimeout(500);
       const after = await this.getPerception();
@@ -277,11 +309,13 @@ export class SessionContext {
   }
 
   public async scrollOverlap(direction: 'down' | 'up', overlapRatio: number = 0.2): Promise<ActionResult> {
-    const before = await this.getPerception();
     const urlBefore = this.page.url();
-    const titleBefore = await this.page.title();
+    let titleBefore = '';
+    try { titleBefore = await this.page.title(); } catch {}
 
     try {
+      this.hitlBreaker.assertCanExecute(`scroll_overlap_${direction}`);
+      const before = await this.getPerception();
       const distance = await ActionExecutor.scrollOverlap(this.page, direction, overlapRatio);
       await this.page.waitForTimeout(300);
       const after = await this.getPerception();
@@ -345,6 +379,54 @@ export class SessionContext {
   ): Promise<{ markdown: string; tokensEstimated: number; tokensSavedRatio: number }> {
     const html = await this.page.content();
     return this.structuredExtractor.extractFocusedContext(html, keywordsOrSelectors);
+  }
+
+  public getCircuitBreaker(): HITLCircuitBreaker {
+    return this.hitlBreaker;
+  }
+
+  public tripChallenge(params: {
+    type: ChallengeType;
+    url?: string;
+    message?: string;
+    screenshotBase64?: string;
+    timeoutMs?: number;
+    metadata?: Record<string, any>;
+  }): Promise<ChallengeResolution> {
+    const url = params.url || this.page.url();
+    const resolutionPromise = this.hitlBreaker.trip({
+      type: params.type,
+      url,
+      message: params.message || `HITL challenge tripped for ${params.type}.`,
+      screenshotBase64: params.screenshotBase64,
+      timeoutMs: params.timeoutMs,
+      metadata: params.metadata,
+    });
+
+    if (!params.screenshotBase64) {
+      this.screenshot()
+        .then((buf) => {
+          const active = this.hitlBreaker.getActiveChallenges();
+          if (active.length > 0) {
+            active[active.length - 1].screenshotBase64 = buf.toString('base64');
+          }
+        })
+        .catch(() => {});
+    }
+
+    return resolutionPromise;
+  }
+
+  public resolveChallenge(challengeId: string, resolution: Partial<ChallengeResolution>): boolean {
+    return this.hitlBreaker.resolve(challengeId, resolution);
+  }
+
+  public getActiveChallenges(): ChallengeEvent[] {
+    return this.hitlBreaker.getActiveChallenges();
+  }
+
+  public configureHITL(config: Partial<HITLConfig>): void {
+    this.hitlBreaker.updateConfig(config);
   }
 
   public async close(): Promise<void> {

@@ -49,7 +49,28 @@ export class CaptchaDetector {
           };
         }
 
-        // 4. Generic Bot Security Check
+        // 4. Two-Factor Authentication (2FA / OTP / SMS Code)
+        const otpInput = document.querySelector(
+          'input[autocomplete="one-time-code"], input[name*="otp" i], input[name*="2fa" i], input[id*="otp" i], input[id*="2fa" i], input[placeholder*="verification code" i], input[placeholder*="验证码" i]'
+        );
+        const otpTextMatch = document.body ? document.body.innerText.toLowerCase() : '';
+        if (
+          otpInput ||
+          otpTextMatch.includes('two-factor authentication') ||
+          otpTextMatch.includes('enter the 6-digit code') ||
+          otpTextMatch.includes('security code sent to') ||
+          otpTextMatch.includes('请输入短信验证码') ||
+          otpTextMatch.includes('双重身份验证')
+        ) {
+          return {
+            detected: true,
+            type: 'two_factor_auth',
+            message: 'Detected Two-Factor Authentication (2FA/OTP) requirement.',
+            selector: otpInput ? (otpInput.id ? `#${otpInput.id}` : 'input') : undefined,
+          };
+        }
+
+        // 5. Generic Bot Security Check
         if (
           title.includes('Attention Required!') ||
           title.includes('Security Check') ||

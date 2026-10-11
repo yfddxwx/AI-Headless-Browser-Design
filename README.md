@@ -135,6 +135,33 @@ const metadata = await session.extractMetadata();
 console.log(metadata.title, metadata.author, metadata.jsonLd);
 ```
 
+### 4. Human-in-the-Loop (HITL) Challenge Circuit Breaker
+
+```typescript
+// Protect agent from runaway token loops when encountering Turnstile / 2FA / CAPTCHA
+const session = await browser.createSession({
+  hitl: {
+    enabled: true,
+    autoBreakOnCaptcha: true,
+    defaultTimeoutMs: 120000,
+    onChallengeDetected: (event) => {
+      console.warn(`[HITL Alert] Challenge tripped: ${event.type} (${event.challengeId})`);
+    },
+    // Optional automated solver hook (e.g. 2Captcha, CapSolver, or custom solver)
+    solverHook: async (event) => {
+      console.log('Resolving challenge automatically via hook...');
+      return { challengeId: event.challengeId, solved: true };
+    },
+  },
+});
+
+// If tripped, manual resolution can be supplied by a human operator:
+session.resolveChallenge('hitl-12345', {
+  solved: true,
+  notes: 'Human operator bypassed 2FA challenge',
+});
+```
+
 ---
 
 ## 🔌 Model Context Protocol (MCP) Integration
@@ -174,6 +201,9 @@ npx agent-browser-mcp
 - `browser_get_network_stats` / `browser_configure_network_shield`: NetworkShield tracker/ad blocking controls.
 - `browser_extract_structured_data`: Schema-driven structured data extraction with prompt injection containment.
 - `browser_extract_metadata`: Schema.org JSON-LD, OpenGraph, and Twitter card metadata extraction.
+- `browser_get_active_challenges`: List any active HITL challenges blocking the agent.
+- `browser_resolve_challenge`: Resolve an active challenge with operator verification or bypass token.
+- `browser_configure_hitl`: Configure HITL circuit breaker behavior and timeout parameters.
 
 ---
 

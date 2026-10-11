@@ -279,6 +279,52 @@ export class AgentBrowserMCPServer {
               properties: {},
             },
           },
+          {
+            name: 'browser_get_active_challenges',
+            description: 'Fetch all active Human-in-the-Loop (HITL) challenges (Cloudflare, reCAPTCHA, 2FA/OTP) currently blocking execution.',
+            inputSchema: {
+              type: 'object',
+              properties: {},
+            },
+          },
+          {
+            name: 'browser_resolve_challenge',
+            description: 'Resolve an active HITL challenge by challengeId with human confirmation, bypass token, or solver note.',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                challengeId: {
+                  type: 'string',
+                  description: 'The ID of the active challenge to resolve.',
+                },
+                solved: {
+                  type: 'boolean',
+                  description: 'Whether the challenge was successfully resolved (default true).',
+                },
+                resolutionToken: {
+                  type: 'string',
+                  description: 'Optional bypass or solver token.',
+                },
+                notes: {
+                  type: 'string',
+                  description: 'Optional operator or solver notes.',
+                },
+              },
+              required: ['challengeId'],
+            },
+          },
+          {
+            name: 'browser_configure_hitl',
+            description: 'Configure Human-in-the-Loop circuit breaker behavior (enable/disable, autoBreakOnCaptcha, defaultTimeoutMs).',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                enabled: { type: 'boolean' },
+                autoBreakOnCaptcha: { type: 'boolean' },
+                defaultTimeoutMs: { type: 'number' },
+              },
+            },
+          },
         ],
       };
     });
@@ -482,6 +528,50 @@ export class AgentBrowserMCPServer {
           const result = await session.extractMetadata();
           return {
             content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+          };
+        }
+
+        case 'browser_get_active_challenges': {
+          const challenges = session.getActiveChallenges();
+          return {
+            content: [{ type: 'text', text: JSON.stringify(challenges, null, 2) }],
+          };
+        }
+
+        case 'browser_resolve_challenge': {
+          const challengeId = String(request.params.arguments?.challengeId || '');
+          if (!challengeId) {
+            return {
+              isError: true,
+              content: [{ type: 'text', text: 'challengeId is required to resolve an active challenge.' }],
+            };
+          }
+          const solved = request.params.arguments?.solved !== undefined ? Boolean(request.params.arguments.solved) : true;
+          const resolutionToken = request.params.arguments?.resolutionToken ? String(request.params.arguments.resolutionToken) : undefined;
+          const notes = request.params.arguments?.notes ? String(request.params.arguments.notes) : undefined;
+
+          const success = session.resolveChallenge(challengeId, {
+            solved,
+            resolutionToken,
+            notes,
+            resolvedBy: 'human',
+          });
+
+          return {
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify({ challengeId, resolved: success }, null, 2),
+              },
+            ],
+          };
+        }
+
+        case 'browser_configure_hitl': {
+          const args = request.params.arguments || {};
+          session.configureHITL(args as any);
+          return {
+            content: [{ type: 'text', text: 'HITL circuit breaker configuration updated successfully.' }],
           };
         }
 

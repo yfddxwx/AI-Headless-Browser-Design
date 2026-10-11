@@ -53,3 +53,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Developed `ExtractionSanitizer` defending against indirect prompt injection (IPI) inside extracted fields, stripping dangerous executable HTML/XSS tags, and blocking prototype pollution attacks.
   - Added focused context slicing (`extractFocusedContext`) achieving >90% token savings for downstream LLM prompts.
   - Exposed MCP tools: `browser_extract_structured_data` and `browser_extract_metadata`.
+- **🤝 Human-in-the-Loop (HITL) Circuit Breaker & Solver Hook (Feature 07)**:
+  - Implemented `HITLCircuitBreaker` state machine (`closed` / `open` / `half_open`) to pause runaway agent execution when confronting bot mitigation barriers.
+  - Extended `CaptchaDetector` with Two-Factor Authentication (2FA / OTP / SMS code) input and text detection.
+  - Built pluggable `ChallengeSolverHook` supporting automated CAPTCHA solvers (2Captcha, CapSolver, custom webhooks) alongside manual operator intervention.
+  - Added cryptographic high-entropy challenge ID generation, anti-forgery resolution validation, and strict timeout bounds against DoS traps.
+  - Exposed MCP tools: `browser_get_active_challenges`, `browser_resolve_challenge`, and `browser_configure_hitl`.
