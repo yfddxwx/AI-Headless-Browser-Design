@@ -112,7 +112,24 @@ run();
 
 ---
 
-### 3. Schema-Driven Structured Extraction (Stagehand-grade)
+### 3. Autonomous Natural Language CLI (`agent-browser run`)
+
+Execute end-to-end web tasks autonomously directly from your terminal using a single natural language instruction:
+
+```bash
+# Execute an instruction autonomously (powered by ReAct loop)
+agent-browser run "Find the top trending project on GitHub" --url "https://github.com/trending"
+
+# Use with custom OpenAI-compatible models (DeepSeek, Qwen, Ollama, etc.)
+agent-browser run "Check the latest news on Hacker News" --model "deepseek-chat" --base-url "https://api.deepseek.com"
+
+# Visible debugging (headful) mode
+agent-browser run "Fill out search form and summarize results" --no-headless
+```
+
+---
+
+### 4. Schema-Driven Structured Extraction (Stagehand-grade)
 
 ```typescript
 // Extract strongly typed records without regex or LLM hallucinations

@@ -65,3 +65,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Implemented `CDPSecurityGuard` preventing remote CDP WebSocket metadata SSRF (169.254.169.254), enforcing secure protocols, and auto-masking API authentication tokens in headers.
   - Added session hygiene on release (`cleanSessionOnRelease`) to guarantee complete credential and cookie isolation between agent leases.
   - Exposed MCP tools: `browser_get_pool_stats` and `browser_recycle_session`.
+- **💬 Autonomous Natural Language CLI & Agent Runner (Feature 09)**:
+  - Built `AgentRunner` ReAct autonomous loop orchestrating Thought -> Action -> Observation with token budgeting and maximum step protection.
+  - Implemented `OpenAICompatibleLLMClient` supporting standard OpenAI/DeepSeek/Qwen/Ollama/OpenRouter endpoints via universal chat completion tool calling.
+  - Added `MockLLMClient` for fully offline, deterministic unit & functional test suites without network flakiness.
+  - Created standalone CLI executable `agent-browser` (`bin/agent-browser.js`) supporting natural language one-sentence task runs (`agent-browser run "<instruction>"`).
+  - Integrated CLI argument parser with `--url`, `--max-steps`, `--model`, `--api-key`, `--base-url`, `--no-headless`, and `--quiet` flags.
+  - Maintained 100% 5-dimensional gatekeeper pass across 39 test suites and 72 test cases.

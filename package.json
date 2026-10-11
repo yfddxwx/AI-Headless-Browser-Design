@@ -8,12 +8,21 @@
   "types": "dist/index.d.ts",
   "type": "module",
   "bin": {
+    "agent-browser": "./bin/agent-browser.js",
     "agent-browser-mcp": "./bin/agent-browser-mcp.js"
   },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./agent": {
+      "types": "./dist/agent/index.d.ts",
+      "import": "./dist/agent/index.js"
+    },
+    "./cli": {
+      "types": "./dist/cli/index.d.ts",
+      "import": "./dist/cli/index.js"
     },
     "./mcp": {
       "types": "./dist/mcp/mcp-server.d.ts",
