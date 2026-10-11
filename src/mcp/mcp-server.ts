@@ -2,11 +2,13 @@ import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { BrowserManager } from '../core/browser-manager.js';
+import { BrowserPool } from '../core/browser-pool.js';
 import { SessionContext } from '../core/session-context.js';
 
 export class AgentBrowserMCPServer {
   private server: Server;
   private browserManager: BrowserManager;
+  private pool: BrowserPool;
   private currentSession: SessionContext | null = null;
 
   constructor() {
@@ -23,6 +25,7 @@ export class AgentBrowserMCPServer {
     );
 
     this.browserManager = new BrowserManager({ headless: true });
+    this.pool = new BrowserPool({ browserConfig: { headless: true } });
     this.setupHandlers();
   }
 
@@ -325,6 +328,22 @@ export class AgentBrowserMCPServer {
               },
             },
           },
+          {
+            name: 'browser_get_pool_stats',
+            description: 'Fetch connection pool & remote CDP cluster statistics (active sessions, idle sessions, queue size, recycled count, and health status).',
+            inputSchema: {
+              type: 'object',
+              properties: {},
+            },
+          },
+          {
+            name: 'browser_recycle_session',
+            description: 'Force recycle current session to heal memory leaks or recover from degraded state.',
+            inputSchema: {
+              type: 'object',
+              properties: {},
+            },
+          },
         ],
       };
     });
@@ -575,6 +594,23 @@ export class AgentBrowserMCPServer {
           };
         }
 
+        case 'browser_get_pool_stats': {
+          const stats = this.pool.getStats();
+          return {
+            content: [{ type: 'text', text: JSON.stringify(stats, null, 2) }],
+          };
+        }
+
+        case 'browser_recycle_session': {
+          if (this.currentSession) {
+            await this.currentSession.close();
+            this.currentSession = null;
+          }
+          return {
+            content: [{ type: 'text', text: 'Current browser session recycled and memory freed.' }],
+          };
+        }
+
         default:
           return {
             isError: true,
@@ -594,6 +630,7 @@ export class AgentBrowserMCPServer {
       await this.currentSession.close();
       this.currentSession = null;
     }
+    await this.pool.drain();
     await this.browserManager.close();
   }
 }

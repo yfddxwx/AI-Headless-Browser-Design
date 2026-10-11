@@ -162,6 +162,32 @@ session.resolveChallenge('hitl-12345', {
 });
 ```
 
+### 5. Remote Cloud CDP & Cluster Pool (`BrowserPool`)
+
+```typescript
+import { BrowserPool } from '@yfddxwx/ai-headless-browser';
+
+// Deploy high-concurrency agent swarms connecting to remote cloud browsers (Browserbase/Steel/Docker)
+const pool = new BrowserPool({
+  mode: 'remote_cdp',
+  remoteCdp: {
+    endpointUrl: 'wss://connect.browserbase.com?apiKey=your-key',
+  },
+  maxConcurrentSessions: 10,
+  cleanSessionOnRelease: true, // Auto-cleans cookies and storage between leases
+});
+
+// Lease an isolated session for a subagent
+const lease = await pool.acquire();
+const perception = await lease.session.navigate('https://example.com');
+console.log(pool.getStats()); // { activeSessions: 1, idleSessions: 0, status: 'healthy' }
+
+// Release back to pool (credentials sanitized, wakes queued subagents)
+await lease.release();
+
+await pool.drain();
+```
+
 ---
 
 ## 🔌 Model Context Protocol (MCP) Integration
@@ -204,6 +230,8 @@ npx agent-browser-mcp
 - `browser_get_active_challenges`: List any active HITL challenges blocking the agent.
 - `browser_resolve_challenge`: Resolve an active challenge with operator verification or bypass token.
 - `browser_configure_hitl`: Configure HITL circuit breaker behavior and timeout parameters.
+- `browser_get_pool_stats`: View active, idle, queue size, and health status of the connection pool.
+- `browser_recycle_session`: Force recycle degraded sessions to prevent memory leaks.
 
 ---
 

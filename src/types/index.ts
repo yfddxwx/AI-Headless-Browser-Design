@@ -94,6 +94,9 @@ export interface BrowserConfig {
   blockPrivateIPs?: boolean;
   networkShield?: NetworkShieldConfig;
   hitl?: HITLConfig;
+  cdpUrl?: string;
+  cdpHeaders?: Record<string, string>;
+  remoteCdp?: RemoteCDPConfig;
 }
 
 export interface SecurityCheckResult {
@@ -245,4 +248,41 @@ export interface ExtractionResult<T = any> {
   securityNotices?: string[];
   tokensSavedRatio?: number;
   metadata?: PageMetadata;
+}
+
+export interface RemoteCDPConfig {
+  endpointUrl: string;
+  headers?: Record<string, string>;
+  timeout?: number;
+  slowMo?: number;
+}
+
+export interface BrowserPoolConfig {
+  mode?: 'local' | 'remote_cdp';
+  remoteCdp?: RemoteCDPConfig;
+  minSessions?: number;
+  maxConcurrentSessions?: number;
+  acquireTimeoutMs?: number;
+  idleTimeoutMs?: number;
+  maxSessionLifetimeMs?: number;
+  browserConfig?: BrowserConfig;
+  cleanSessionOnRelease?: boolean;
+}
+
+export interface PoolStats {
+  mode: 'local' | 'remote_cdp';
+  totalSessionsCreated: number;
+  activeSessions: number;
+  idleSessions: number;
+  queuedRequests: number;
+  recycledSessions: number;
+  status: 'healthy' | 'degraded' | 'exhausted';
+}
+
+export interface PooledSession {
+  id: string;
+  session: any; // SessionContext instance
+  createdAt: number;
+  lastUsedAt: number;
+  release: () => Promise<void>;
 }

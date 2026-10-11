@@ -59,3 +59,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Built pluggable `ChallengeSolverHook` supporting automated CAPTCHA solvers (2Captcha, CapSolver, custom webhooks) alongside manual operator intervention.
   - Added cryptographic high-entropy challenge ID generation, anti-forgery resolution validation, and strict timeout bounds against DoS traps.
   - Exposed MCP tools: `browser_get_active_challenges`, `browser_resolve_challenge`, and `browser_configure_hitl`.
+- **☁️ Remote Cloud CDP & Cluster Connection Pool (Feature 08)**:
+  - Enabled remote Chrome DevTools Protocol (`chromium.connectOverCDP`) across cloud providers (Browserbase, Steel, Docker clusters).
+  - Built `BrowserPool` high-concurrency elastic session connection pool with queued leases, max session lifetime, auto-healing, and health check monitoring.
+  - Implemented `CDPSecurityGuard` preventing remote CDP WebSocket metadata SSRF (169.254.169.254), enforcing secure protocols, and auto-masking API authentication tokens in headers.
+  - Added session hygiene on release (`cleanSessionOnRelease`) to guarantee complete credential and cookie isolation between agent leases.
+  - Exposed MCP tools: `browser_get_pool_stats` and `browser_recycle_session`.

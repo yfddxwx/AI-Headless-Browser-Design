@@ -5,3 +5,4 @@ export * from './tab-manager.js';
 export * from './session-vault.js';
 export * from './network-shield.js';
 export * from './hitl-circuit-breaker.js';
+export * from './browser-pool.js';
