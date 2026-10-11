@@ -30,6 +30,10 @@ export class ActionExecutor {
     }
   }
 
+  public static async clickCoordinate(page: Page, x: number, y: number): Promise<void> {
+    await page.mouse.click(x, y);
+  }
+
   public static async pressKey(page: Page, key: string): Promise<void> {
     await page.keyboard.press(key);
   }

@@ -25,3 +25,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **🧪 Autonomous Gatekeeper**:
   - Multi-dimensional test suite (Unit, Functional, Integration, Security).
   - Automated CI gatekeeper pipeline (`scripts/gatekeeper.ts`).
+- **🖼️ Multimodal Visual Perception (Feature 02)**:
+  - Built `SOMOverlayEngine` for Set-of-Mark (SOM) visual grounding with non-destructive DOM restoration.
+  - Implemented `getVisualSnapshot()` with bounding box coordinate calculation.
+  - Implemented `clickCoordinate(x, y)` for physical pixel grounding.
+  - Added MCP tools `browser_get_visual_snapshot` and `browser_click_coordinate`.
+  - Strengthened visual prompt injection defense against zero-dimension and off-screen nodes.

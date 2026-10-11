@@ -3,7 +3,8 @@ import { SSRFGuard } from '../security/ssrf-guard.js';
 import { PageSnapshotService } from '../perception/page-snapshot.js';
 import { ActionExecutor } from '../action/action-executor.js';
 import { StateDiff } from '../action/state-diff.js';
-import { ActionResult, BrowserConfig, PagePerception } from '../types/index.js';
+import { ActionResult, BrowserConfig, PagePerception, VisualSnapshot } from '../types/index.js';
+import { SOMOverlayEngine, SOMOverlayOptions } from '../perception/som-overlay.js';
 
 export class SessionContext {
   private context: BrowserContext;
@@ -148,6 +149,47 @@ export class SessionContext {
         message: `Failed to scroll: ${err.message}`,
         urlBefore,
         urlAfter: urlBefore,
+        titleBefore,
+        titleAfter: titleBefore,
+        error: err.message,
+      };
+    }
+  }
+
+  public async getVisualSnapshot(options?: SOMOverlayOptions): Promise<VisualSnapshot> {
+    // Ensure active page is annotated with refs first
+    await this.getPerception();
+    return SOMOverlayEngine.captureVisualSnapshot(this.page, options);
+  }
+
+  public async clickCoordinate(x: number, y: number): Promise<ActionResult> {
+    const before = await this.getPerception();
+    const urlBefore = this.page.url();
+    const titleBefore = await this.page.title();
+
+    try {
+      await ActionExecutor.clickCoordinate(this.page, x, y);
+      await this.page.waitForTimeout(500);
+      const after = await this.getPerception();
+      const diffSummary = StateDiff.computeSummary(before, after);
+
+      return {
+        success: true,
+        action: 'click_coordinate',
+        message: `Clicked at coordinates (${x}, ${y}).`,
+        urlBefore,
+        urlAfter: this.page.url(),
+        titleBefore,
+        titleAfter: await this.page.title(),
+        diffSummary,
+      };
+    } catch (err: any) {
+      return {
+        success: false,
+        action: 'click_coordinate',
+        message: `Failed to click coordinates (${x}, ${y}): ${err.message}`,
+        urlBefore,
+        urlAfter: this.page.url(),
         titleBefore,
         titleAfter: titleBefore,
         error: err.message,

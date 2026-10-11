@@ -87,6 +87,37 @@ export class AgentBrowserMCPServer {
               properties: {},
             },
           },
+          {
+            name: 'browser_get_visual_snapshot',
+            description: 'Fetch an annotated visual screenshot with Set-of-Mark (SOM) bounding boxes and @Ref labels for multimodal LLM vision understanding, alongside element coordinates.',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                includeRawScreenshot: {
+                  type: 'boolean',
+                  description: 'Whether to also include unannotated clean screenshot in response.',
+                },
+              },
+            },
+          },
+          {
+            name: 'browser_click_coordinate',
+            description: 'Click directly on a physical (x, y) pixel coordinate in the current viewport.',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                x: {
+                  type: 'number',
+                  description: 'Horizontal X coordinate in pixels.',
+                },
+                y: {
+                  type: 'number',
+                  description: 'Vertical Y coordinate in pixels.',
+                },
+              },
+              required: ['x', 'y'],
+            },
+          },
         ],
       };
     });
@@ -154,6 +185,28 @@ export class AgentBrowserMCPServer {
                 text: JSON.stringify(perception, null, 2),
               },
             ],
+          };
+        }
+
+        case 'browser_get_visual_snapshot': {
+          const includeRaw = Boolean(request.params.arguments?.includeRawScreenshot);
+          const visual = await session.getVisualSnapshot({ includeRawScreenshot: includeRaw });
+          return {
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify(visual, null, 2),
+              },
+            ],
+          };
+        }
+
+        case 'browser_click_coordinate': {
+          const x = Number(request.params.arguments?.x);
+          const y = Number(request.params.arguments?.y);
+          const result = await session.clickCoordinate(x, y);
+          return {
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
           };
         }
 

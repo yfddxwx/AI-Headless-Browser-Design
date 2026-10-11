@@ -1,3 +1,10 @@
+export interface BoundingBox {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 export interface InteractiveElement {
   ref: string;             // e.g. "@1", "@2"
   tag: string;             // "a", "button", "input", "select", "textarea"
@@ -9,12 +16,22 @@ export interface InteractiveElement {
   type?: string;           // input type (text, password, submit, etc.)
   disabled: boolean;
   selector: string;        // precise CSS or XPath selector
-  boundingBox?: {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-  };
+  boundingBox?: BoundingBox;
+}
+
+export interface VisualElement extends InteractiveElement {
+  boundingBox: BoundingBox;
+  isInViewport: boolean;
+}
+
+export interface VisualSnapshot {
+  url: string;
+  title: string;
+  viewport: { width: number; height: number };
+  annotatedScreenshotBase64: string;
+  rawScreenshotBase64?: string;
+  visibleElements: VisualElement[];
+  totalAnnotatedCount: number;
 }
 
 export interface PagePerception {

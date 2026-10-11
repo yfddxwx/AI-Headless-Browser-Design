@@ -45,6 +45,8 @@ export class PromptGuard {
         style.includes('opacity: 0') ||
         style.includes('font-size:0') ||
         style.includes('font-size: 0') ||
+        /width:\s*0(px|%|em|rem)?/i.test(style) ||
+        /height:\s*0(px|%|em|rem)?/i.test(style) ||
         /left:\s*-[0-9]{3,}px/i.test(style) ||
         /top:\s*-[0-9]{3,}px/i.test(style);
 
