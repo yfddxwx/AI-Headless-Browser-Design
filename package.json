@@ -37,6 +37,7 @@
     "dist",
     "bin",
     "README.md",
+    "README.zh-CN.md",
     "LICENSE"
   ],
   "repository": {

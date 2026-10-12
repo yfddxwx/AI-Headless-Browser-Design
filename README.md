@@ -8,6 +8,10 @@
 </p>
 
 <p align="center">
+  <a href="README.md"><strong>English</strong></a> • <a href="README.zh-CN.md">简体中文</a>
+</p>
+
+<p align="center">
   <a href="https://github.com/yfddxwx/AI-Headless-Browser-Design/actions"><img src="https://img.shields.io/badge/CI-Passing-brightgreen?style=flat-square&logo=github-actions" alt="CI" /></a>
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square" alt="License: MIT" /></a>
   <a href="https://nodejs.org/"><img src="https://img.shields.io/badge/Node-%3E%3D20.0.0-green.svg?style=flat-square&logo=node.js" alt="Node" /></a>
@@ -18,24 +22,41 @@
 
 ---
 
-## 💡 Why AgentBrowser? (传统无头浏览器为什么不适合 AI 大模型？)
+## 💡 Why AgentBrowser? (Why Traditional Headless Browsers Fail for LLMs)
 
-Traditional headless browsers (Playwright, Puppeteer, Selenium) are engineered for **human QA engineers** and **web scrapers**. When connected to LLMs, they introduce severe bottlenecks:
+Traditional headless browsers (Playwright, Puppeteer, Selenium) were engineered for **human QA engineers** and **classic web scrapers**. When connected directly to LLMs and autonomous agents, they present severe architectural bottlenecks:
 
-1. **Token Bloat**: Raw HTML spans 30,000 to 100,000+ tokens filled with CSS, scripts, and invisible divs.
-2. **Fragile Selectors**: LLMs hallucinate complex CSS/XPath selectors that break easily.
-3. **Blackbox Feedback**: Browsers return timeouts or boolean results without showing *what actually changed*.
-4. **Security Blindspots**: Hidden prompt injections (`display:none` adversarial text) and SSRF risks to local network services.
+1. **Token Bloat**: Raw HTML spans 30,000 to 100,000+ tokens filled with CSS, scripts, inline SVGs, and invisible nodes.
+2. **Fragile Selectors & Hallucinations**: LLMs hallucinate complex CSS/XPath selectors that break upon minor DOM shifts.
+3. **Blackbox Feedback**: Browsers return void or boolean results without showing *what actually mutated on screen*.
+4. **Security Blindspots**: Adversarial prompt injections (`display:none` hidden text) and SSRF exploits targeting internal cloud metadata services.
 
-**AgentBrowser fixes this by design**:
+**AgentBrowser is built from first principles for AI agents**:
 
 | Dimension | Traditional Headless Browser | AgentBrowser (NoHead-AI) |
 | :--- | :--- | :--- |
 | **Perception** | Raw HTML (30k - 100k+ Tokens) | **Semantic Compressed Markdown** (~85%-95% Token reduction) |
 | **Locators** | Brittle CSS / XPath | **Deterministic <code>@1</code>, <code>@2</code> Ref Registry** |
-| **State Mutation** | None (Void or Boolean) | **StateDiff**: Automatic diff of URL, Title, and interactive elements |
+| **State Mutation** | Blackbox (Void or Boolean) | **StateDiff**: Automatic diff of URL, Title, and interactive elements |
+| **Visual Grounding** | Plain screenshots prone to click drift | **Set-of-Mark (SOM)**: High-contrast overlay tags aligned to physical pixels |
 | **Security** | Standard Sandbox only | **SSRF Private CIDR Blocker + Indirect Prompt Injection (IPI) Guard** |
-| **Protocol** | Custom Glue Code | **Native Model Context Protocol (MCP)** Server out-of-the-box |
+| **Protocol** | Custom Glue Code | **Native Model Context Protocol (MCP)** + One-Sentence Natural Language CLI |
+
+---
+
+## 🌟 Feature Matrix & Architecture Specifications
+
+| Specification | Module Name | Core Capabilities | RFC Document |
+| :--- | :--- | :--- | :---: |
+| **Feature 01** | **Core Engine & Perception** | Lightweight runtime, semantic DOM compression (85%-95% savings), deterministic `@Ref` registry, SSRF private IP defense | [View Spec](./docs/specs/01-core-engine-and-perception.md) |
+| **Feature 02** | **Multimodal Visual Perception** | Viewport visibility pruning, bounding box calculation, Set-of-Mark (SOM) non-destructive rendering, coordinate clicks | [View Spec](./docs/specs/02-multimodal-visual-perception.md) |
+| **Feature 03** | **Tab Manager & History Tree** | Deterministic `tabId`, `window.open` popup auto-capture with opener hierarchy (`openerTabId`), cross-tab context switching | [View Spec](./docs/specs/03-tab-manager-and-history-tree.md) |
+| **Feature 04** | **Session Vault & Persistence** | Cookie / LocalStorage / SessionStorage export & import, credential encryption, Cloudflare/reCAPTCHA bot detection hook | [View Spec](./docs/specs/04-storage-vault-and-auth-persistence.md) |
+| **Feature 05** | **Performance Shield & Overlap** | NetworkShield ad/analytics aborting (70% latency cut), physical occlusion detection (`elementFromPoint`), 20% overlap scrolling | [View Spec](./docs/specs/05-performance-acceleration-and-modern-web-enhancement.md) |
+| **Feature 06** | **Structured Data Extractor** | Schema.org JSON-LD matching, table & repeating card clustering, IPI injection sanitization, focused context slicing | [View Spec](./docs/specs/06-structured-extractor-and-jsonld-parser.md) |
+| **Feature 07** | **HITL Challenge Circuit Breaker** | Tri-state breaker (`closed`/`open`/`half_open`), Cloudflare/2FA/CAPTCHA pausing, pluggable solver hooks & manual override | [View Spec](./docs/specs/07-hitl-challenge-circuit-breaker-and-solvers.md) |
+| **Feature 08** | **Remote Cloud CDP & BrowserPool** | Remote WebSocket CDP (Browserbase/Steel/Docker), elastic session pooling (leases, queue, lifetime, auto-clean hygiene) | [View Spec](./docs/specs/08-remote-cdp-and-cluster-browser-pool.md) |
+| **Feature 09** | **Autonomous CLI & ReAct Runner** | Autonomous `Thought -> Action -> Observation` loop, step budget guard (`maxSteps`), universal OpenAI/DeepSeek/Qwen/Ollama client | [View Spec](./docs/specs/09-autonomous-natural-language-cli-and-react-runner.md) |
 
 ---
 
@@ -49,8 +70,8 @@ This project is developed using an **Autonomous Engineering Team Model**, where 
                 │   Contracts / RFCs / Types   │
                 └──────────────┬───────────────┘
                                │
-         ┌─────────────────────┴─────────────────────┐
-         ▼                                           ▼
+          ┌─────────────────────┴─────────────────────┐
+          ▼                                           ▼
 ┌──────────────────────────────┐   ┌──────────────────────────────┐
 │  ⚙️ Core Engine Dev           │   │  🧠 AI Protocol Dev          │
 │  Playwright / Session / CDP  │   │  DOM Compressor / @Refs / MCP│
@@ -81,11 +102,51 @@ This project is developed using an **Autonomous Engineering Team Model**, where 
 
 ```bash
 npm install @yfddxwx/ai-headless-browser
+
 # Install browser binaries
 npx playwright install chromium
 ```
 
-### 2. Programmatic Usage (Node.js / TypeScript)
+---
+
+### 2. Autonomous Natural Language CLI (`agent-browser run`)
+
+Execute end-to-end web tasks autonomously from your terminal using a single natural language instruction:
+
+```bash
+# Link binary globally in development
+npm link
+
+# 1. Execute an instruction autonomously (powered by ReAct loop)
+agent-browser run "Find the top trending project on GitHub" --url "https://github.com/trending"
+
+# 2. Use with DeepSeek / Qwen / Ollama / OpenAI
+$env:OPENAI_API_KEY="sk-your-key"
+$env:OPENAI_BASE_URL="https://api.deepseek.com"
+$env:AGENT_MODEL="deepseek-chat"
+agent-browser run "Summarize top 3 technical news on Hacker News"
+
+# 3. Visible debugging (headful) mode
+agent-browser run "Search for mechanical keyboards and compare prices" --no-headless
+```
+
+#### CLI Options Reference
+
+| Option | Shorthand | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `run <instruction>` | - | Required | Natural language task instruction for the agent |
+| `--url <url>` | - | Optional | Initial URL to navigate to before execution |
+| `--max-steps <num>` | - | `15` | Maximum steps budget to prevent runaway loops |
+| `--model <name>` | - | `gpt-4o-mini` | Model name (or env `AGENT_MODEL`) |
+| `--api-key <key>` | - | Env Var | OpenAI-compatible API key (or env `OPENAI_API_KEY`) |
+| `--base-url <url>` | - | `api.openai.com` | OpenAI-compatible API base URL |
+| `--no-headless` | `--headful` | `false` | Launch browser in visible window mode |
+| `--quiet` | `-q` | `false` | Only print the final output |
+| `--help` | `-h` | - | Display CLI help documentation |
+
+---
+
+### 3. Programmatic Usage (Node.js / TypeScript)
 
 ```typescript
 import { BrowserManager } from '@yfddxwx/ai-headless-browser';
@@ -97,7 +158,7 @@ async function run() {
   // 1. Navigate with automatic SSRF check & semantic compression
   const perception = await session.navigate('https://news.ycombinator.com');
   console.log(`Page Title: ${perception.title}`);
-  console.log(`Tokens: ~${perception.tokensEstimated} (Saved ${perception.compressionRatio}%)`);
+  console.log(`Tokens: ~${perception.tokensEstimated}`);
 
   // 2. Perform actions via deterministic @Ref handles
   const result = await session.click('@1');
@@ -108,23 +169,6 @@ async function run() {
 }
 
 run();
-```
-
----
-
-### 3. Autonomous Natural Language CLI (`agent-browser run`)
-
-Execute end-to-end web tasks autonomously directly from your terminal using a single natural language instruction:
-
-```bash
-# Execute an instruction autonomously (powered by ReAct loop)
-agent-browser run "Find the top trending project on GitHub" --url "https://github.com/trending"
-
-# Use with custom OpenAI-compatible models (DeepSeek, Qwen, Ollama, etc.)
-agent-browser run "Check the latest news on Hacker News" --model "deepseek-chat" --base-url "https://api.deepseek.com"
-
-# Visible debugging (headful) mode
-agent-browser run "Fill out search form and summarize results" --no-headless
 ```
 
 ---
@@ -145,14 +189,16 @@ const productSchema = {
 const result = await session.extractData(productSchema);
 console.log(`Extracted ${result.itemCount} items from source: ${result.source}`);
 console.log(result.data);
-// Output: [ { title: "量子计算套件", price: 18800, inStock: true }, ... ]
+// Output: [ { title: "Wireless Noise Cancelling Headphones", price: 299, inStock: true }, ... ]
 
 // Extract Schema.org JSON-LD and OpenGraph metadata
 const metadata = await session.extractMetadata();
 console.log(metadata.title, metadata.author, metadata.jsonLd);
 ```
 
-### 4. Human-in-the-Loop (HITL) Challenge Circuit Breaker
+---
+
+### 5. Human-in-the-Loop (HITL) Challenge Circuit Breaker
 
 ```typescript
 // Protect agent from runaway token loops when encountering Turnstile / 2FA / CAPTCHA
@@ -179,7 +225,9 @@ session.resolveChallenge('hitl-12345', {
 });
 ```
 
-### 5. Remote Cloud CDP & Cluster Pool (`BrowserPool`)
+---
+
+### 6. Remote Cloud CDP & Cluster Pool (`BrowserPool`)
 
 ```typescript
 import { BrowserPool } from '@yfddxwx/ai-headless-browser';
@@ -201,7 +249,6 @@ console.log(pool.getStats()); // { activeSessions: 1, idleSessions: 0, status: '
 
 // Release back to pool (credentials sanitized, wakes queued subagents)
 await lease.release();
-
 await pool.drain();
 ```
 
@@ -230,7 +277,7 @@ npx agent-browser-mcp
 }
 ```
 
-### Exposed MCP Tools
+### Exposed MCP Tools (17 Tools)
 
 - `browser_navigate`: Safe navigation (SSRF blocked) returning compact markdown & `@Ref` list.
 - `browser_act`: Execute actions (`click`, `fill`, `scroll`) using element references (`@1`, `@2`).
@@ -270,7 +317,7 @@ npm run gatekeeper
 ▶ [🧪 质检门禁] 端到端综合链路集成测试 (Integration) ... ✅ PASS
 ▶ [🛡️ 安全沙箱] SSRF 拦截与防提示词注入测试 (Security) .. ✅ PASS
 ======================================================================
-🟢 全部检查 100% 通过！
+🟢 全部检查 100% 通过！(39 test suites, 72 test cases passed)
 ```
 
 ---
@@ -285,13 +332,19 @@ npm run gatekeeper
 │   ├── PULL_REQUEST_TEMPLATE.md   # Gatekeeper PR verification checklist
 │   └── dependabot.yml             # Automated dependency security patches
 ├── bin/
-│   └── agent-browser-mcp.js       # Global CLI binary for MCP execution
-├── docs/specs/                    # Architect Feature RFC specifications
+│   ├── agent-browser.js           # Autonomous natural language CLI entrypoint
+│   ├── agent-browser.cmd          # Windows native cmd wrapper (prevents association intercept)
+│   ├── agent-browser-mcp.js       # Global CLI binary for MCP execution
+│   └── agent-browser-mcp.cmd      # Windows native cmd wrapper for MCP server
+├── docs/specs/                    # Architect Feature RFC specifications (Feature 01 - 09)
 ├── src/
-│   ├── core/                      # BrowserManager, SessionContext, Stealth scripts
-│   ├── perception/                # DOMCompressor, ElementRegistry, PageSnapshot
+│   ├── core/                      # BrowserManager, SessionContext, BrowserPool, Stealth
+│   ├── perception/                # DOMCompressor, ElementRegistry, SOMOverlay, StructuredExtractor
 │   ├── action/                    # ActionExecutor, StateDiff engine
-│   ├── security/                  # SSRFGuard, PromptGuard (IPI sanitizer)
+│   ├── security/                  # SSRFGuard, PromptGuard, CDPSecurityGuard, ExtractionSanitizer
+│   ├── hitl/                      # HITLCircuitBreaker Human-in-the-Loop controller
+│   ├── agent/                     # AgentRunner (ReAct loop), LLMClient (OpenAI/DeepSeek/Ollama)
+│   ├── cli/                       # CLI argument parsing and terminal formatting
 │   ├── mcp/                       # Model Context Protocol Server & Tools
 │   └── index.ts                   # Unified library entrypoint
 ├── tests/
@@ -312,6 +365,6 @@ npm run gatekeeper
 
 ## 📄 License
 
-This project is licensed under the **MIT License** - see the [LICENSE](file:///d:/Gemini%20pro/no%20head/LICENSE) file for details.
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
 
-Copyright (c) 2026 **yifangdong**.
+Copyright (c) 2026 **yifangdong** (`fangdongyi674@gmail.com`).
