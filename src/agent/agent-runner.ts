@@ -196,11 +196,11 @@ Title: ${currentPerception.title}
 Interactive Elements Count: ${currentPerception.interactiveElements.length}
 
 === PAGE CONTENT (COMPRESSED MARKDOWN) ===
-${currentPerception.compressedMarkdown.slice(0, 4000)}
+${currentPerception.compressedMarkdown.slice(0, 12000)}
 
 === AVAILABLE INTERACTIVE ELEMENTS (@Ref) ===
 ${currentPerception.interactiveElements
-  .slice(0, 40)
+  .slice(0, 60)
   .map((e) => `• ${e.ref} [${e.tag.toUpperCase()}] "${e.text || e.name || ''}" -> ${e.href || e.selector}`)
   .join('\n')}`;
 
@@ -230,7 +230,7 @@ ${currentPerception.interactiveElements
             ...call.arguments,
           };
         } else if (llmResponse.content) {
-          // Attempt fallback JSON parse
+          // 1. Attempt fallback JSON parse
           const jsonMatch = llmResponse.content.match(/\{[\s\S]*\}/);
           if (jsonMatch) {
             try {
@@ -243,6 +243,36 @@ ${currentPerception.interactiveElements
               }
             } catch {
               // ignore
+            }
+          }
+
+          // 2. Attempt regex parsing for text action calls (e.g. navigate(url="..."), click(ref="@2"))
+          if (!action) {
+            const content = llmResponse.content;
+
+            const navMatch = content.match(/(?:action(?:\s+executed)?:\s*)?navigate\s*\(\s*(?:(?:url\s*=\s*)?["']?([^"'\s)]+)["']?)?\s*\)/i);
+            if (navMatch && navMatch[1]) {
+              action = { type: 'navigate', url: navMatch[1] };
+            }
+
+            const clickMatch = content.match(/(?:action(?:\s+executed)?:\s*)?click\s*\(\s*(?:(?:ref\s*=\s*)?["']?(@\w+)["']?)?\s*\)/i);
+            if (!action && clickMatch && clickMatch[1]) {
+              action = { type: 'click', ref: clickMatch[1] };
+            }
+
+            const fillMatch = content.match(/(?:action(?:\s+executed)?:\s*)?fill\s*\(\s*(?:ref\s*=\s*)?["']?(@\w+)["']?\s*,\s*(?:text\s*=\s*)?["']?([^"'\)]*)["']?\s*\)/i);
+            if (!action && fillMatch && fillMatch[1]) {
+              action = { type: 'fill', ref: fillMatch[1], text: fillMatch[2] || '' };
+            }
+
+            const scrollMatch = content.match(/(?:action(?:\s+executed)?:\s*)?scroll\s*\(\s*(?:(?:direction\s*=\s*)?["']?(\w+)["']?)?\s*\)/i);
+            if (!action && scrollMatch && scrollMatch[1]) {
+              action = { type: 'scroll', direction: scrollMatch[1] as any };
+            }
+
+            const extractMatch = content.match(/(?:action(?:\s+executed)?:\s*)?extract\s*\(/i);
+            if (!action && extractMatch) {
+              action = { type: 'extract', schema: {} };
             }
           }
         }
@@ -269,7 +299,10 @@ ${currentPerception.interactiveElements
           // and we have page perception, synthesize a rich final answer answering the user's instruction.
           const isProcedural =
             !resolvedAnswer ||
-            (resolvedAnswer.length < 60 &&
+            /action executed:/i.test(resolvedAnswer) ||
+            /let me navigate/i.test(resolvedAnswer) ||
+            /the click navigated/i.test(resolvedAnswer) ||
+            (resolvedAnswer.length < 80 &&
               /^(task completed|action executed|已成功加载|我提取|正在提取|done\.?)/i.test(resolvedAnswer)) ||
             /action executed:\s*extract/i.test(resolvedAnswer);
 

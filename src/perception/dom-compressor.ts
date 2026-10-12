@@ -26,17 +26,26 @@ export class DOMCompressor {
       markdownLines.push(`# ${title}\n`);
     }
 
-    $('h1, h2, h3, h4, h5, h6, p, ul, ol, table, form, [data-agent-ref]').each((_, el) => {
+    $('h1, h2, h3, h4, h5, h6, p, ul, ol, table, form, article, [data-agent-ref]').each((_, el) => {
       const $el = $(el);
       const tag = (el as any).tagName?.toLowerCase();
       const ref = $el.attr('data-agent-ref');
 
       // Check if this element is already handled by a parent container
-      if ($el.parents('p, ul, ol, table, [data-agent-ref]').length > 0 && !ref) {
+      if ($el.parents('p, ul, ol, table, article, [data-agent-ref]').length > 0 && !ref) {
         return;
       }
 
-      if (tag === 'h1') {
+      if (tag === 'article') {
+        const titleText = $el.find('h1, h2, h3, h4, [class*="title"], [class*="repo"], a').first().text().trim().replace(/\s+/g, ' ');
+        const descText = $el.find('p, [class*="desc"]').first().text().trim().replace(/\s+/g, ' ');
+        const metaText = $el.find('[class*="meta"], [class*="stats"], [class*="footer"], span').not('[class*="desc"]').text().trim().replace(/\s+/g, ' ');
+        if (titleText) {
+          markdownLines.push(`### [Article/Item] ${titleText}`);
+          if (descText) markdownLines.push(`> ${descText}`);
+          if (metaText && metaText !== descText) markdownLines.push(`*Metadata:* ${metaText.slice(0, 150)}`);
+        }
+      } else if (tag === 'h1') {
         const text = $el.text().trim();
         if (text) markdownLines.push(`## ${text}`);
       } else if (tag === 'h2') {
@@ -49,10 +58,19 @@ export class DOMCompressor {
         const text = $el.text().trim().replace(/\s+/g, ' ');
         if (text) markdownLines.push(text);
       } else if (tag === 'ul' || tag === 'ol') {
+        const isNavHeader = $el.parents('header, nav, [role="navigation"], [role="banner"]').length > 0;
+        let count = 0;
         $el.find('li').each((_, li) => {
+          if (isNavHeader && count >= 5) return;
           const itemText = $(li).text().trim().replace(/\s+/g, ' ');
-          if (itemText) markdownLines.push(`- ${itemText}`);
+          if (itemText) {
+            markdownLines.push(`- ${itemText}`);
+            count++;
+          }
         });
+        if (isNavHeader && count >= 5) {
+          markdownLines.push(`- ... (other navigation links compacted)`);
+        }
       } else if (ref) {
         const item = this.elementRegistry.get(ref);
         if (item) {

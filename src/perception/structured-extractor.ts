@@ -278,12 +278,31 @@ export class StructuredExtractor {
     const dataAttrVal = $card.find(`[data-${lower}]`).first().attr(`data-${lower}`);
     if (dataAttrVal) return this.coerceType(dataAttrVal, expectedType);
 
-    // 2. Title / Name heuristics
-    if (lower.includes('title') || lower.includes('name') || lower.includes('headline')) {
-      const heading = $card.find('h1, h2, h3, h4, h5, [class*="title"], [class*="name"]').first().text().trim();
+    // 2. Title / Name / Repo heuristics
+    if (
+      lower.includes('title') ||
+      lower.includes('name') ||
+      lower.includes('headline') ||
+      lower.includes('repo') ||
+      lower.includes('project') ||
+      lower.includes('package')
+    ) {
+      const heading = $card.find('h1, h2, h3, h4, h5, [class*="title"], [class*="name"], [class*="repo"]').first().text().trim();
       if (heading) return this.coerceType(heading, expectedType);
-      const linkText = $card.find('a').first().text().trim();
+      const linkText = $card.find('a[href]').first().text().trim();
       if (linkText) return this.coerceType(linkText, expectedType);
+    }
+
+    // 2.5 Author / Owner heuristics
+    if (lower.includes('author') || lower.includes('owner') || lower.includes('creator') || lower.includes('by')) {
+      const authorEl = $card.find('[class*="author"], [class*="owner"], [rel*="author"], span.text-normal').first().text().trim();
+      if (authorEl) return this.coerceType(authorEl.replace(/\/$/, '').trim(), expectedType);
+    }
+
+    // 2.6 Language heuristics
+    if (lower.includes('lang')) {
+      const langEl = $card.find('[itemprop*="programmingLanguage"], [class*="language"], [class*="lang"]').first().text().trim();
+      if (langEl) return this.coerceType(langEl, expectedType);
     }
 
     // 3. Price heuristics
@@ -309,9 +328,9 @@ export class StructuredExtractor {
       if (src) return this.coerceType(src, expectedType);
     }
 
-    // 6. Rating heuristics
-    if (lower.includes('rating') || lower.includes('score') || lower.includes('stars')) {
-      const ratingEl = $card.find('[class*="rating"], [class*="score"], [aria-label*="star"], [aria-label*="rating"]').first();
+    // 6. Rating / Star heuristics
+    if (lower.includes('rating') || lower.includes('score') || lower.includes('star') || lower.includes('today')) {
+      const ratingEl = $card.find('a[href*="/stargazers"], [class*="rating"], [class*="score"], [aria-label*="star"], [aria-label*="rating"]').first();
       const ratingText = ratingEl.attr('aria-label') || ratingEl.text().trim();
       if (ratingText) return this.coerceType(ratingText, expectedType);
     }
