@@ -246,43 +246,67 @@ ${currentPerception.interactiveElements
             }
           }
 
-          // 2. Attempt regex parsing for text action calls (e.g. navigate(url="..."), click(ref="@2"))
+          // 2. Attempt regex parsing for text action calls (e.g. navigate(url="..."), Action executed: scroll)
           if (!action) {
             const content = llmResponse.content;
 
-            const navMatch = content.match(/(?:action(?:\s+executed)?:\s*)?navigate\s*\(\s*(?:(?:url\s*=\s*)?["']?([^"'\s)]+)["']?)?\s*\)/i);
-            if (navMatch && navMatch[1]) {
-              action = { type: 'navigate', url: navMatch[1] };
+            // scroll (e.g. scroll, Action executed: scroll, scroll(down), scroll())
+            const scrollMatch = content.match(/action(?:\s+executed)?:\s*scroll\b(?:\s*\(\s*(?:(?:direction\s*=\s*)?["']?(\w+)["']?)?\s*\))?/i) ||
+                                content.match(/\bscroll\s*\(\s*(?:(?:direction\s*=\s*)?["']?(\w+)["']?)?\s*\)/i);
+            if (scrollMatch) {
+              action = { type: 'scroll', direction: (scrollMatch[1] as any) || 'down' };
             }
 
-            const clickMatch = content.match(/(?:action(?:\s+executed)?:\s*)?click\s*\(\s*(?:(?:ref\s*=\s*)?["']?(@\w+)["']?)?\s*\)/i);
-            if (!action && clickMatch && clickMatch[1]) {
-              action = { type: 'click', ref: clickMatch[1] };
+            // navigate
+            if (!action) {
+              const navMatch = content.match(/action(?:\s+executed)?:\s*navigate(?:\s*\(\s*(?:(?:url\s*=\s*)?["']?([^"'\s)]+)["']?)?\s*\)|\s+["']?([^"'\s)]+)["']?)/i) ||
+                               content.match(/\bnavigate\s*\(\s*(?:(?:url\s*=\s*)?["']?([^"'\s)]+)["']?)?\s*\)/i);
+              const url = navMatch ? (navMatch[1] || navMatch[2]) : null;
+              if (url) {
+                action = { type: 'navigate', url };
+              }
             }
 
-            const fillMatch = content.match(/(?:action(?:\s+executed)?:\s*)?fill\s*\(\s*(?:ref\s*=\s*)?["']?(@\w+)["']?\s*,\s*(?:text\s*=\s*)?["']?([^"'\)]*)["']?\s*\)/i);
-            if (!action && fillMatch && fillMatch[1]) {
-              action = { type: 'fill', ref: fillMatch[1], text: fillMatch[2] || '' };
+            // click
+            if (!action) {
+              const clickMatch = content.match(/action(?:\s+executed)?:\s*click(?:\s*\(\s*(?:(?:ref\s*=\s*)?["']?(@\w+)["']?)?\s*\)|\s+["']?(@\w+)["']?)/i) ||
+                                 content.match(/\bclick\s*\(\s*(?:(?:ref\s*=\s*)?["']?(@\w+)["']?)?\s*\)/i);
+              const ref = clickMatch ? (clickMatch[1] || clickMatch[2]) : null;
+              if (ref) {
+                action = { type: 'click', ref };
+              }
             }
 
-            const scrollMatch = content.match(/(?:action(?:\s+executed)?:\s*)?scroll\s*\(\s*(?:(?:direction\s*=\s*)?["']?(\w+)["']?)?\s*\)/i);
-            if (!action && scrollMatch && scrollMatch[1]) {
-              action = { type: 'scroll', direction: scrollMatch[1] as any };
+            // fill
+            if (!action) {
+              const fillMatch = content.match(/action(?:\s+executed)?:\s*fill(?:\s*\(\s*(?:ref\s*=\s*)?["']?(@\w+)["']?\s*,\s*(?:text\s*=\s*)?["']?([^"'\)]*)["']?\s*\))/i) ||
+                                content.match(/\bfill\s*\(\s*(?:ref\s*=\s*)?["']?(@\w+)["']?\s*,\s*(?:text\s*=\s*)?["']?([^"'\)]*)["']?\s*\)/i);
+              if (fillMatch && fillMatch[1]) {
+                action = { type: 'fill', ref: fillMatch[1], text: fillMatch[2] || '' };
+              }
             }
 
-            const extractMatch = content.match(/(?:action(?:\s+executed)?:\s*)?extract\s*\(/i);
-            if (!action && extractMatch) {
-              action = { type: 'extract', schema: {} };
+            // extract
+            if (!action) {
+              const extractMatch = content.match(/action(?:\s+executed)?:\s*extract\b(?:\s*\(.*?\))?/i);
+              if (extractMatch) {
+                action = { type: 'extract', schema: {} };
+              }
             }
           }
         }
 
         // Fallback default action if LLM returned plain text answer
         if (!action) {
-          action = {
-            type: 'finish',
-            answer: llmResponse.content || 'Task completed.',
-          };
+          const content = llmResponse.content || '';
+          if (/\b(?:scroll down|scrolling down|let me scroll)\b/i.test(content)) {
+            action = { type: 'scroll', direction: 'down' };
+          } else {
+            action = {
+              type: 'finish',
+              answer: content || 'Task completed.',
+            };
+          }
         }
 
         if (verbose) {

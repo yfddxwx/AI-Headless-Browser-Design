@@ -13,8 +13,13 @@ export class DOMCompressor {
     const rawHtmlLength = rawHtml.length;
     const $ = cheerio.load(rawHtml);
 
-    // 1. Remove non-semantic tags
-    $('script, style, noscript, svg, canvas, template, link, meta').remove();
+    // 1. Remove non-semantic tags, hidden elements, and closed dropdown popovers
+    $('script, style, noscript, svg, canvas, template, link, meta, [hidden], [aria-hidden="true"]').remove();
+    $('details:not([open]) > *:not(summary)').remove();
+    $('[style*="display:none"], [style*="display: none"], [style*="visibility:hidden"]').remove();
+    $('.SelectMenu, .select-menu-modal, .dropdown-menu').filter((_, el) => {
+      return $(el).parents('details:not([open])').length > 0;
+    }).remove();
 
     // 2. Scan and annotate interactive elements with references (@1, @2, ...)
     const interactiveElements = this.elementRegistry.registerFromCheerio($);
