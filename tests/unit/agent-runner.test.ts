@@ -70,4 +70,17 @@ describe('Unit Test: AgentRunner & CLI (自主智能体与 CLI 单元测试)', (
     expect(result.totalSteps).toBe(3);
     expect(result.finalAnswer.toLowerCase()).toContain('maximum step limit');
   });
+
+  it('应当正确读取与写入持久化配置并脱敏 API Key', async () => {
+    const { writePersistentConfig, readPersistentConfig, maskApiKey } = await import('../../src/cli/config.js');
+    
+    expect(maskApiKey('sk-1234567890abcdef')).toBe('sk-1...cdef');
+    expect(maskApiKey('')).toBe('(not set)');
+    expect(maskApiKey('123')).toBe('********');
+
+    writePersistentConfig({ model: 'unit-test-model' });
+    const cfg = readPersistentConfig();
+    expect(cfg.model).toBe('unit-test-model');
+  });
 });
+

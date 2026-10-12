@@ -1,5 +1,21 @@
 import { AgentRunner } from '../agent/agent-runner.js';
 import { AgentRunOptions } from '../agent/types.js';
+import {
+  loadAllConfig,
+  readPersistentConfig,
+  writePersistentConfig,
+  getConfigFile,
+  maskApiKey,
+  PersistentConfig,
+} from './config.js';
+
+export {
+  loadAllConfig,
+  readPersistentConfig,
+  writePersistentConfig,
+  getConfigFile,
+  maskApiKey,
+};
 
 export function parseCliArgs(args: string[]): {
   command?: string;
@@ -61,8 +77,9 @@ Usage:
 
 Commands:
   run <instruction>      Execute a natural language task autonomously
+  config [get|set|path]  Manage persistent global LLM configuration
 
-Options:
+Run Options:
   --url <url>            Initial URL to open
   --max-steps <number>   Maximum steps budget (default: 15)
   --model <name>         Model to use (default: gpt-4o-mini or env AGENT_MODEL)
@@ -73,13 +90,88 @@ Options:
   -v, --version          Show version
   -h, --help             Show this help message
 
+Config Commands:
+  config get             Show current persistent configuration
+  config set [options]   Save persistent API keys & models (~/.agent-browser/config.json)
+                         Options: --api-key <key> --base-url <url> --model <name>
+  config path            Print the path to global config.json
+  config clear           Clear persistent configuration
+
 Examples:
+  # One-time persistent setup (never need to re-enter $env again):
+  agent-browser config set --api-key "sk-xxx" --base-url "https://api.deepseek.com" --model "deepseek-chat"
+
+  # Autonomous web navigation:
   agent-browser run "Find the top trending project on GitHub" --url "https://github.com/trending"
-  agent-browser run "Check weather in Tokyo" --model "deepseek-chat"
+  agent-browser run "Check weather in Tokyo"
 `);
 }
 
+export function handleConfigCommand(args: string[]): void {
+  const sub = args[0] || 'get';
+
+  if (sub === 'get' || sub === 'list') {
+    const cfg = readPersistentConfig();
+    console.log('\n======================================================================');
+    console.log('⚙️ AgentBrowser Global Configuration');
+    console.log('======================================================================');
+    console.log(`  • Config Path : ${getConfigFile()}`);
+    console.log(`  • API Key     : ${maskApiKey(cfg.apiKey || process.env.OPENAI_API_KEY || process.env.AGENT_API_KEY)}`);
+    console.log(`  • Base URL    : ${cfg.baseUrl || process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1'}`);
+    console.log(`  • Model       : ${cfg.model || process.env.AGENT_MODEL || 'gpt-4o-mini'}`);
+    console.log('======================================================================\n');
+    return;
+  }
+
+  if (sub === 'path') {
+    console.log(getConfigFile());
+    return;
+  }
+
+  if (sub === 'set') {
+    const newCfg: Partial<PersistentConfig> = {};
+    for (let i = 1; i < args.length; i++) {
+      const a = args[i];
+      if ((a === '--api-key' || a === 'api-key' || a === 'apiKey') && i + 1 < args.length) {
+        newCfg.apiKey = args[++i];
+      } else if ((a === '--base-url' || a === 'base-url' || a === 'baseUrl') && i + 1 < args.length) {
+        newCfg.baseUrl = args[++i];
+      } else if ((a === '--model' || a === 'model') && i + 1 < args.length) {
+        newCfg.model = args[++i];
+      }
+    }
+
+    if (Object.keys(newCfg).length === 0) {
+      console.log('Usage:');
+      console.log('  agent-browser config set --api-key <key> [--base-url <url>] [--model <name>]');
+      return;
+    }
+
+    const saved = writePersistentConfig(newCfg);
+    console.log('\n======================================================================');
+    console.log('✅ Configuration saved successfully to ~/.agent-browser/config.json');
+    console.log('======================================================================');
+    console.log(`  • API Key  : ${maskApiKey(saved.apiKey)}`);
+    console.log(`  • Base URL : ${saved.baseUrl || '(default: https://api.openai.com/v1)'}`);
+    console.log(`  • Model    : ${saved.model || '(default: gpt-4o-mini)'}`);
+    console.log('\n💡 You can now run "agent-browser run" from ANY terminal without setting $env!');
+    console.log('======================================================================\n');
+    return;
+  }
+
+  if (sub === 'clear' || sub === 'reset') {
+    writePersistentConfig({ apiKey: '', baseUrl: '', model: '' });
+    console.log('✅ Global configuration cleared.');
+    return;
+  }
+
+  console.log(`❌ Unknown config subcommand: "${sub}". Available: get, set, path, clear`);
+}
+
 export async function runCli(argv: string[]): Promise<void> {
+  // Load configuration from local .env and global ~/.agent-browser/config.json
+  loadAllConfig();
+
   const { command, instruction, options, showHelp, showVersion } = parseCliArgs(argv);
 
   if (showVersion) {
@@ -89,6 +181,12 @@ export async function runCli(argv: string[]): Promise<void> {
 
   if (showHelp || !command) {
     printHelp();
+    return;
+  }
+
+  if (command === 'config') {
+    // Pass args after 'config'
+    handleConfigCommand(argv.slice(1));
     return;
   }
 

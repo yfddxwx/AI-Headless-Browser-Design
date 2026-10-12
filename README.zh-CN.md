@@ -118,14 +118,18 @@ npx playwright install chromium
 # 全局注册命令（本地开发环境）
 npm link
 
-# 1. 执行自主任务（智能体自主规划、点击、翻页并总结）
-agent-browser run "找出 GitHub Trending 榜单上最热门的项目并总结" --url "https://github.com/trending"
+# 1. 一次性持久化配置模型与密钥（保存在 ~/.agent-browser/config.json，任何新终端再也不用敲 $env）
+agent-browser config set --api-key "sk-你的密钥" --base-url "https://api.deepseek.com" --model "deepseek-chat"
+# 查看当前生效配置
+agent-browser config get
 
-# 2. 配合 DeepSeek / 通义千问 / Ollama 等主流大模型
-$env:OPENAI_API_KEY="sk-你的密钥"
-$env:OPENAI_BASE_URL="https://api.deepseek.com"
-$env:AGENT_MODEL="deepseek-chat"
-agent-browser run "调研 Hacker News 今日排名前三的技术新闻"
+# 也支持在项目根目录下放置 .env 文件自动加载：
+# OPENAI_API_KEY=sk-xxxx
+# OPENAI_BASE_URL=https://api.deepseek.com
+# AGENT_MODEL=deepseek-chat
+
+# 2. 执行自主任务（智能体自主规划、点击、翻页并总结）
+agent-browser run "找出 GitHub Trending 榜单上最热门的项目并总结" --url "https://github.com/trending"
 
 # 3. 开启可视浏览器窗口（亲眼观察智能体操作）
 agent-browser run "在电商网站搜索机械键盘并对比价格" --no-headless

@@ -113,18 +113,21 @@ npx playwright install chromium
 
 Execute end-to-end web tasks autonomously from your terminal using a single natural language instruction:
 
-```bash
 # Link binary globally in development
 npm link
 
-# 1. Execute an instruction autonomously (powered by ReAct loop)
-agent-browser run "Find the top trending project on GitHub" --url "https://github.com/trending"
+# 1. One-time persistent global configuration (saved to ~/.agent-browser/config.json, no need to re-type $env)
+agent-browser config set --api-key "sk-your-key" --base-url "https://api.deepseek.com" --model "deepseek-chat"
+# View active configuration
+agent-browser config get
 
-# 2. Use with DeepSeek / Qwen / Ollama / OpenAI
-$env:OPENAI_API_KEY="sk-your-key"
-$env:OPENAI_BASE_URL="https://api.deepseek.com"
-$env:AGENT_MODEL="deepseek-chat"
-agent-browser run "Summarize top 3 technical news on Hacker News"
+# Also automatically reads .env in your current working directory:
+# OPENAI_API_KEY=sk-xxxx
+# OPENAI_BASE_URL=https://api.deepseek.com
+# AGENT_MODEL=deepseek-chat
+
+# 2. Execute an instruction autonomously (powered by ReAct loop)
+agent-browser run "Find the top trending project on GitHub" --url "https://github.com/trending"
 
 # 3. Visible debugging (headful) mode
 agent-browser run "Search for mechanical keyboards and compare prices" --no-headless
