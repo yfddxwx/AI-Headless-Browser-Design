@@ -54,6 +54,8 @@ export function parseCliArgs(args: string[]): {
       options.baseUrl = args[++i];
     } else if (arg === '--no-headless' || arg === '--headful') {
       options.headless = false;
+    } else if (arg === '--no-prune') {
+      options.pruneContext = false;
     } else if (arg === '--quiet' || arg === '-q') {
       options.verbose = false;
     } else if (!command) {
@@ -86,6 +88,7 @@ Run Options:
   --api-key <key>        OpenAI-compatible API key (or env OPENAI_API_KEY)
   --base-url <url>       OpenAI-compatible API base URL (default: https://api.openai.com/v1)
   --no-headless          Run browser in visible UI mode
+  --no-prune             Disable context pruning (keep full DOM history across steps)
   --quiet, -q            Only print the final result
   -v, --version          Show version
   -h, --help             Show this help message
@@ -213,6 +216,9 @@ export async function runCli(argv: string[]): Promise<void> {
       console.log('🎉 [任务完成] 智能体成功达成目标！');
       console.log(`⏱️ 总耗时: ${(result.totalDurationMs / 1000).toFixed(2)} 秒 | 步数: ${result.totalSteps}`);
       console.log(`⚡ 累计预估 Token 节省: ~${result.tokensEstimated.toLocaleString()} tokens`);
+      if (result.contextTokensSaved && result.contextTokensSaved > 0) {
+        console.log(`✂️ 上下文感知剪枝: 额外优化约 ~${result.contextTokensSaved.toLocaleString()} tokens 冗余上行`);
+      }
       console.log('\n📦 最终输出 / 结果:');
       console.log(result.finalAnswer);
     } else {

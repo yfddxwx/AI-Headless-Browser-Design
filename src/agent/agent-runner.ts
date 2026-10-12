@@ -133,10 +133,67 @@ Rules:
     },
   ];
 
+  /**
+   * Dehydrate / prune historical browser perceptions in conversation history.
+   * Strips bulky DOM Markdown and interactive element listings from past steps,
+   * retaining URL, Title, Observations, and execution trail.
+   * Returns estimated number of tokens saved.
+   */
+  public static pruneHistoricalPerceptions(
+    history: ChatMessage[],
+    keepRecentCount: number = 0
+  ): number {
+    let tokensSaved = 0;
+    const perceptionIndices: number[] = [];
+    for (let i = 0; i < history.length; i++) {
+      if (
+        history[i].role === 'user' &&
+        history[i].content.includes('=== PAGE CONTENT (COMPRESSED MARKDOWN) ===')
+      ) {
+        perceptionIndices.push(i);
+      }
+    }
+
+    const toPruneCount = Math.max(0, perceptionIndices.length - keepRecentCount);
+    for (let j = 0; j < toPruneCount; j++) {
+      const idx = perceptionIndices[j];
+      const original = history[idx].content;
+
+      const urlMatch = original.match(/URL:\s*([^\n]+)/);
+      const titleMatch = original.match(/Title:\s*([^\n]+)/);
+      const stepMatch = original.match(/--- CURRENT BROWSER STATE \(Step (\d+)\) ---/);
+      const obsMatch = original.match(/\[Previous Action Observation\][\s\S]*?(?=\n\n--- CURRENT BROWSER STATE|\n--- CURRENT BROWSER STATE|$)/);
+
+      const stepNum = stepMatch ? stepMatch[1] : '';
+      const url = urlMatch ? urlMatch[1].trim() : '';
+      const title = titleMatch ? titleMatch[1].trim() : '';
+
+      let prunedContent = '';
+      if (obsMatch) {
+        prunedContent += `${obsMatch[0].trim()}\n\n`;
+      }
+      prunedContent += `--- BROWSER STATE SNAPSHOT (Step ${stepNum || '?'}, Pruned) ---
+URL: ${url}
+Title: ${title}
+[Historical DOM Markdown & interactive elements pruned to save context tokens. See action & observation below.]`;
+
+      const savedChars = original.length - prunedContent.length;
+      if (savedChars > 0) {
+        tokensSaved += Math.round(savedChars / 4);
+      }
+
+      history[idx].content = prunedContent;
+    }
+
+    return tokensSaved;
+  }
+
   public static async run(options: AgentRunOptions): Promise<AgentRunResult> {
     const startTime = Date.now();
     const maxSteps = options.maxSteps || 15;
     const verbose = options.verbose !== false;
+    const pruneContext = options.pruneContext !== false;
+    const maxRecentPerceptions = options.maxRecentPerceptions || 1;
 
     const browserManager = new BrowserManager({
       headless: options.headless !== false,
@@ -162,6 +219,9 @@ Rules:
     let finalAnswer = '';
     let success = false;
     let tokensEstimated = 0;
+    let contextTokensSaved = 0;
+    let lastObservation = '';
+    const extractedRecords: any[] = [];
     let errorMsg: string | undefined;
 
     try {
@@ -188,7 +248,20 @@ Rules:
       for (let stepIndex = 1; stepIndex <= maxSteps; stepIndex++) {
         const stepStartTime = Date.now();
 
+        // Context Pruning: Dehydrate older perception messages to avoid quadratic token growth
+        if (pruneContext) {
+          contextTokensSaved += this.pruneHistoricalPerceptions(
+            conversationHistory,
+            Math.max(0, maxRecentPerceptions - 1)
+          );
+        }
+
         // Build observation prompt based on current page state
+        let currentPromptContent = '';
+        if (lastObservation) {
+          currentPromptContent += `[Previous Action Observation]\n${lastObservation}\n\n`;
+        }
+
         if (currentPerception) {
           const perceptionSummary = `--- CURRENT BROWSER STATE (Step ${stepIndex}) ---
 URL: ${currentPerception.url}
@@ -204,13 +277,12 @@ ${currentPerception.interactiveElements
   .map((e) => `• ${e.ref} [${e.tag.toUpperCase()}] "${e.text || e.name || ''}" -> ${e.href || e.selector}`)
   .join('\n')}`;
 
-          conversationHistory.push({ role: 'user', content: perceptionSummary });
+          currentPromptContent += perceptionSummary;
         } else {
-          conversationHistory.push({
-            role: 'user',
-            content: `No web page is currently loaded. Please use the navigate action to open a relevant URL.`,
-          });
+          currentPromptContent += `No web page is currently loaded. Please use the navigate action to open a relevant URL.`;
         }
+
+        conversationHistory.push({ role: 'user', content: currentPromptContent });
 
         if (verbose) {
           console.log(`\n🤖 [Step ${stepIndex}/${maxSteps}] Planning next action...`);
@@ -340,11 +412,21 @@ ${currentPerception.interactiveElements
               console.log('🔄 [AgentRunner] 正在执行终局答案智能聚合 (Synthesizing comprehensive final answer)...');
             }
             try {
+              // Ensure historical perceptions are pruned, keeping the latest active state
+              if (pruneContext) {
+                contextTokensSaved += this.pruneHistoricalPerceptions(conversationHistory, 1);
+              }
+
+              let extractedContext = '';
+              if (extractedRecords.length > 0) {
+                extractedContext = `\n\n=== ACCUMULATED EXTRACTED DATA ===\n${JSON.stringify(extractedRecords, null, 2).slice(0, 8000)}`;
+              }
+
               const synthesisPrompt: ChatMessage[] = [
                 ...conversationHistory,
                 {
                   role: 'user',
-                  content: `[Final Answer Aggregation Request]\nYou have located the relevant content on the page (${currentPerception.url}). Now synthesize and provide the full, comprehensive answer to the user's original goal: "${options.instruction}". Extract specific names, facts, numbers, and summaries from the page content into a clean Markdown report. Do NOT output tool calls, just output the final answer text.`,
+                  content: `[Final Answer Aggregation Request]\nYou have located the relevant content on the page (${currentPerception.url}). Now synthesize and provide the full, comprehensive answer to the user's original goal: "${options.instruction}". Extract specific names, facts, numbers, and summaries from the page content into a clean Markdown report.${extractedContext}\nDo NOT output tool calls, just output the final answer text.`,
                 },
               ];
               const synthesisResponse = await llmClient.chat(synthesisPrompt, []);
@@ -401,6 +483,7 @@ ${currentPerception.interactiveElements
             observation = `Scrolled ${dir}.`;
           } else if (action.type === 'extract') {
             const extracted = await session.extractData(action.schema || {});
+            extractedRecords.push(extracted.data);
             observation = `Extracted data: ${JSON.stringify(extracted.data).slice(0, 1000)}`;
           } else {
             observation = `Unknown action type "${action.type}".`;
@@ -412,6 +495,8 @@ ${currentPerception.interactiveElements
         if (verbose) {
           console.log(`👁️ Observation: ${observation.slice(0, 300)}`);
         }
+
+        lastObservation = observation;
 
         const stepRecord: AgentStepRecord = {
           stepNumber: stepIndex,
@@ -456,6 +541,7 @@ ${currentPerception.interactiveElements
       totalDurationMs,
       finalUrl: steps.length > 0 ? steps[steps.length - 1].urlAfter : '',
       tokensEstimated,
+      contextTokensSaved,
       error: errorMsg,
     };
   }

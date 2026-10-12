@@ -82,5 +82,85 @@ describe('Unit Test: AgentRunner & CLI (自主智能体与 CLI 单元测试)', (
     const cfg = readPersistentConfig();
     expect(cfg.model).toBe('unit-test-model');
   });
+
+  it('pruneHistoricalPerceptions 应当脱水历史庞大 DOM 并保留 URL、标题与执行反馈', () => {
+    const history: any[] = [
+      { role: 'system', content: 'system prompt' },
+      { role: 'user', content: 'Goal: 测试剪枝' },
+      {
+        role: 'user',
+        content: `--- CURRENT BROWSER STATE (Step 1) ---
+URL: https://github.com/trending
+Title: Trending Repositories
+Interactive Elements Count: 500
+
+=== PAGE CONTENT (COMPRESSED MARKDOWN) ===
+${'# Extensive Repo Content\n'.repeat(200)}
+
+=== AVAILABLE INTERACTIVE ELEMENTS (@Ref) ===
+• @1 [BUTTON] "Filter" -> /filter`,
+      },
+      { role: 'assistant', content: 'Thought: Scrolled down\nAction executed: scroll' },
+      {
+        role: 'user',
+        content: `[Previous Action Observation]
+Scrolled down.
+
+--- CURRENT BROWSER STATE (Step 2) ---
+URL: https://github.com/trending
+Title: Trending Repositories
+Interactive Elements Count: 500
+
+=== PAGE CONTENT (COMPRESSED MARKDOWN) ===
+${'# Next Page Content\n'.repeat(200)}
+
+=== AVAILABLE INTERACTIVE ELEMENTS (@Ref) ===
+• @2 [BUTTON] "More" -> /more`,
+      },
+    ];
+
+    // Prune with keepRecentCount = 1 (preserve step 2, prune step 1)
+    const tokensSaved = AgentRunner.pruneHistoricalPerceptions(history, 1);
+
+    expect(tokensSaved).toBeGreaterThan(500);
+
+    // Step 1 perception message must be dehydrated
+    expect(history[2].content).toContain('--- BROWSER STATE SNAPSHOT (Step 1, Pruned) ---');
+    expect(history[2].content).toContain('URL: https://github.com/trending');
+    expect(history[2].content).toContain('Title: Trending Repositories');
+    expect(history[2].content).not.toContain('Extensive Repo Content');
+    expect(history[2].content).not.toContain('@1 [BUTTON]');
+
+    // Step 2 perception message must remain untouched (active)
+    expect(history[4].content).toContain('--- CURRENT BROWSER STATE (Step 2) ---');
+    expect(history[4].content).toContain('Next Page Content');
+    expect(history[4].content).toContain('@2 [BUTTON]');
+  });
+
+  it('智能体多步执行时应当自动记录 contextTokensSaved 剪枝收益', async () => {
+    const multiStepClient = new MockLLMClient([
+      {
+        thought: '第 1 步先滚屏',
+        toolCalls: [{ name: 'scroll', arguments: { direction: 'down' } }],
+      },
+      {
+        thought: '第 2 步完成任务',
+        toolCalls: [{ name: 'finish', arguments: { answer: '已阅全部内容' } }],
+      },
+    ]);
+
+    const result = await AgentRunner.run({
+      instruction: '滚屏并总结',
+      maxSteps: 5,
+      verbose: false,
+      customLLM: multiStepClient,
+      pruneContext: true,
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.totalSteps).toBe(2);
+    // Since mock runs without web page loaded initially, verify contextTokensSaved property exists
+    expect(result.contextTokensSaved).toBeDefined();
+  });
 });
 

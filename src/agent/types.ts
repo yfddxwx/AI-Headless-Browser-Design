@@ -35,6 +35,7 @@ export interface AgentRunResult {
   totalDurationMs: number;
   finalUrl: string;
   tokensEstimated: number;
+  contextTokensSaved?: number;
   error?: string;
 }
 
@@ -53,6 +54,8 @@ export interface AgentRunOptions {
   blockPrivateIPs?: boolean;
   customLLM?: LLMClientInterface;
   onStep?: (step: AgentStepRecord) => void;
+  pruneContext?: boolean;
+  maxRecentPerceptions?: number;
 }
 
 export interface ChatMessage {
