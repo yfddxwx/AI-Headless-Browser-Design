@@ -9,7 +9,7 @@ import {
   ChatMessage,
   LLMClientInterface,
 } from './types.js';
-import { OpenAICompatibleLLMClient } from './llm-client.js';
+import { OpenAICompatibleLLMClient, MockLLMClient } from './llm-client.js';
 
 export class AgentRunner {
   private static readonly SYSTEM_PROMPT = `You are NoHead-AI, an autonomous AI web browsing agent.
@@ -31,7 +31,11 @@ You have access to the following actions:
 Rules:
 1. Always analyze the current page perception and plan your next action carefully.
 2. Do NOT guess CSS selectors or XPaths. Always use the provided @Ref handles (@1, @2, etc.).
-3. When you have found the answer or accomplished the requested goal, call finish with the comprehensive answer.
+3. FINAL ANSWER AGGREGATION (CRITICAL):
+   - When calling finish(answer: string), you MUST provide a detailed, well-structured, comprehensive answer in Markdown directly fulfilling the user's instruction.
+   - Do NOT just report operational steps (e.g. NEVER just say "Page loaded, extracting data" or "Action executed: extract").
+   - Extract the actual data, item names, metrics, links, and takeaways from the page content into the answer.
+   - For example, if asked to "find the top trending projects", list the actual top repository names, star counts, descriptions, and insights.
 4. If an action fails, inspect the error message and choose an alternative path.`;
 
   private static readonly TOOLS_DECLARATION = [
@@ -114,11 +118,14 @@ Rules:
       type: 'function',
       function: {
         name: 'finish',
-        description: 'Complete the task with a final answer.',
+        description: 'Complete the task and deliver the final aggregated answer. The "answer" parameter MUST contain the comprehensive, synthesized findings/results answering the user instruction, formatted in clean Markdown with concrete details, names, and metrics.',
         parameters: {
           type: 'object',
           properties: {
-            answer: { type: 'string', description: 'The final comprehensive answer to the user.' },
+            answer: {
+              type: 'string',
+              description: 'The final comprehensive synthesized answer containing the actual data and findings.',
+            },
           },
           required: ['answer'],
         },
@@ -255,7 +262,44 @@ ${currentPerception.interactiveElements
 
         // Check if finished
         if (action.type === 'finish') {
-          finalAnswer = action.answer || thought;
+          let resolvedAnswer = (action.answer || thought).trim();
+
+          // Final Answer Aggregation Guard:
+          // If the model output purely procedural text (e.g. "I will extract data", "Action executed", "Done")
+          // and we have page perception, synthesize a rich final answer answering the user's instruction.
+          const isProcedural =
+            !resolvedAnswer ||
+            (resolvedAnswer.length < 60 &&
+              /^(task completed|action executed|已成功加载|我提取|正在提取|done\.?)/i.test(resolvedAnswer)) ||
+            /action executed:\s*extract/i.test(resolvedAnswer);
+
+          if (
+            isProcedural &&
+            currentPerception &&
+            llmClient &&
+            !(llmClient instanceof MockLLMClient)
+          ) {
+            if (verbose) {
+              console.log('🔄 [AgentRunner] 正在执行终局答案智能聚合 (Synthesizing comprehensive final answer)...');
+            }
+            try {
+              const synthesisPrompt: ChatMessage[] = [
+                ...conversationHistory,
+                {
+                  role: 'user',
+                  content: `[Final Answer Aggregation Request]\nYou have located the relevant content on the page (${currentPerception.url}). Now synthesize and provide the full, comprehensive answer to the user's original goal: "${options.instruction}". Extract specific names, facts, numbers, and summaries from the page content into a clean Markdown report. Do NOT output tool calls, just output the final answer text.`,
+                },
+              ];
+              const synthesisResponse = await llmClient.chat(synthesisPrompt, []);
+              if (synthesisResponse.content && synthesisResponse.content.trim().length > 30) {
+                resolvedAnswer = synthesisResponse.content.trim();
+              }
+            } catch {
+              // Fallback to resolvedAnswer if synthesis fails
+            }
+          }
+
+          finalAnswer = resolvedAnswer;
           success = true;
           const stepRecord: AgentStepRecord = {
             stepNumber: stepIndex,
